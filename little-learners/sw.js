@@ -2,11 +2,17 @@
  *
  * Strategy:
  *  - Precache the full app shell so the app works offline after first load.
- *  - For same-origin GETs: cache-first, then network, then any cached fallback.
- *  - For Google Fonts (cross-origin): network-first, fall back to cache if available.
+ *  - Navigations (HTML): network-first, falling back to cache (then index.html).
+ *    This ensures users always see the latest page when online, instead of being
+ *    pinned to a stale precached copy until they hard-refresh.
+ *  - Other same-origin assets (CSS / JS / data / images): stale-while-revalidate
+ *    — instant load from cache, refreshed in the background so the *next* visit
+ *    has the new file. Combined with the navigation strategy above, a single
+ *    normal refresh is enough to pick up code changes.
+ *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.1.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -100,31 +106,50 @@ self.addEventListener('fetch', (event) => {
   const isFonts = url.host === 'fonts.googleapis.com' || url.host === 'fonts.gstatic.com';
 
   if (isSameOrigin) {
-    event.respondWith(cacheFirst(req));
+    // Navigations (HTML page loads) must be network-first so updates show up
+    // immediately on a normal refresh. Everything else uses
+    // stale-while-revalidate so the UI stays fast but updates within one cycle.
+    if (req.mode === 'navigate' || req.destination === 'document') {
+      event.respondWith(networkFirstNavigation(req));
+    } else {
+      event.respondWith(staleWhileRevalidate(req));
+    }
   } else if (isFonts) {
     event.respondWith(networkFirst(req));
   }
   // Everything else: let the browser handle it.
 });
 
-async function cacheFirst(req) {
+// Allow the page to ask the SW to take over immediately after an update.
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+async function networkFirstNavigation(req) {
   const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(req, { ignoreSearch: true });
-  if (cached) return cached;
   try {
     const res = await fetch(req);
+    if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+    return res;
+  } catch (err) {
+    const cached = await cache.match(req, { ignoreSearch: true });
+    if (cached) return cached;
+    const shell = await cache.match('./index.html');
+    if (shell) return shell;
+    throw err;
+  }
+}
+
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req, { ignoreSearch: true });
+  const network = fetch(req).then((res) => {
     if (res && res.ok && req.url.startsWith(self.location.origin)) {
       cache.put(req, res.clone()).catch(() => {});
     }
     return res;
-  } catch (err) {
-    // Last-ditch: serve index.html for navigations so the SPA-ish shell still loads.
-    if (req.mode === 'navigate') {
-      const fallback = await cache.match('./index.html');
-      if (fallback) return fallback;
-    }
-    throw err;
-  }
+  }).catch(() => null);
+  return cached || network || fetch(req);
 }
 
 async function networkFirst(req) {

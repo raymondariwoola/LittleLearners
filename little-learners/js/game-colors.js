@@ -32,22 +32,49 @@
   function tapColor(ctx, c, btn) {
     PP.Audio.pling();
     btn.classList.remove('pp-pop'); void btn.offsetWidth; btn.classList.add('pp-pop');
-    flashTint(c.hex);
+    const closeFlash = flashTint(c);
     PP.Mascot.setMood(ctx.mascot, 'excited');
-    ctx.say(`${c.label}! Like a ${c.example}. ${c.emoji}`).finally(() => PP.Mascot.setMood(ctx.mascot, 'happy'));
+    ctx.say(`${c.label}! Like a ${c.example}. ${c.emoji}`).finally(() => {
+      PP.Mascot.setMood(ctx.mascot, 'happy');
+      closeFlash();
+    });
     ctx.awardSticker(c.id, c.label);
   }
 
-  function flashTint(hex) {
+  // Returns the relative luminance (0–1) of a hex colour for contrast checks.
+  function luminance(hex) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16) / 255;
+    const g = parseInt(h.substring(2, 4), 16) / 255;
+    const b = parseInt(h.substring(4, 6), 16) / 255;
+    const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+
+  // Fills the whole screen with the chosen colour plus a big label + emoji
+  // so toddlers clearly see and learn the colour. Stays up until the voice
+  // line finishes (closed by the caller) with a min visible time of ~1.4s.
+  function flashTint(c) {
     const t = document.createElement('div');
     t.className = 'll-tint-flash';
-    t.style.background = hex;
+    if (luminance(c.hex) > 0.65) t.classList.add('ll-tint-flash--light');
+    t.style.background = c.hex;
+    t.innerHTML = `
+      <span class="ll-tint-flash__emoji" aria-hidden="true">${c.emoji}</span>
+      <span class="ll-tint-flash__label">${c.label}</span>`;
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('is-in'));
-    setTimeout(() => {
-      t.classList.remove('is-in');
-      setTimeout(() => t.remove(), 360);
-    }, 420);
+    const shownAt = Date.now();
+    let closed = false;
+    return function close() {
+      if (closed) return; closed = true;
+      const elapsed = Date.now() - shownAt;
+      const wait = Math.max(0, 1400 - elapsed);
+      setTimeout(() => {
+        t.classList.remove('is-in');
+        setTimeout(() => t.remove(), 360);
+      }, wait);
+    };
   }
 
   function practice(ctx) { runRounds(ctx, false); }

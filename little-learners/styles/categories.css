@@ -42,8 +42,12 @@
 .ll-tile__big { font-size: 56px; font-weight: 700; line-height: 1; }
 .ll-tile__sub { font-size: 18px; font-weight: 500; color: var(--pp-ink-soft); margin-top: 2px; }
 
-.ll-tile--letter { background: linear-gradient(135deg, #fff7e0, #ffe2b5); }
-.ll-tile--num    { background: linear-gradient(135deg, #e8f4ff, #d4ecd2); }
+/* Letter/number tiles always use cream/mint backgrounds, so force dark ink
+   regardless of theme to keep the big glyph and sub label readable. */
+.ll-tile--letter { background: linear-gradient(135deg, #fff7e0, #ffe2b5); color: #2a1437; }
+.ll-tile--num    { background: linear-gradient(135deg, #e8f4ff, #d4ecd2); color: #2a1437; }
+.ll-tile--letter .ll-tile__sub,
+.ll-tile--num    .ll-tile__sub { color: #5a4170; }
 .ll-tile--shape  svg { width: 100%; height: 100%; max-width: 110px; max-height: 110px; }
 .ll-tile--shape  { padding: 14px; min-height: 140px; }
 .ll-tile--shape.is-spinning svg { animation: ll-spin 0.9s var(--pp-spring); }
@@ -100,8 +104,8 @@
 
 /* ===== Colour wheel ===== */
 .ll-color-wheel {
-  display: grid; gap: 18px; width: 100%; max-width: 600px;
-  grid-template-columns: repeat(4, 1fr);
+  display: grid; gap: 18px; width: 100%; max-width: 760px;
+  grid-template-columns: repeat(6, 1fr);
 }
 .ll-color-blob {
   width: 100%; aspect-ratio: 1; border: none; cursor: pointer;
@@ -114,9 +118,31 @@
 .ll-tint-flash {
   position: fixed; inset: 0; z-index: 500; pointer-events: none;
   opacity: 0; transition: opacity 0.35s ease;
-  mix-blend-mode: multiply;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 18px;
 }
-.ll-tint-flash.is-in { opacity: 0.45; }
+.ll-tint-flash.is-in { opacity: 1; }
+.ll-tint-flash__label {
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
+  font-size: clamp(56px, 12vw, 160px); line-height: 1;
+  color: #fff;
+  text-shadow: 0 6px 24px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35);
+  transform: scale(0.7);
+  transition: transform 0.4s var(--pp-spring);
+}
+.ll-tint-flash__emoji {
+  font-size: clamp(72px, 14vw, 180px);
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
+  transform: scale(0.7);
+  transition: transform 0.4s var(--pp-spring) 0.05s;
+}
+.ll-tint-flash.is-in .ll-tint-flash__label,
+.ll-tint-flash.is-in .ll-tint-flash__emoji { transform: scale(1); }
+/* Light backgrounds need dark text for legibility */
+.ll-tint-flash--light .ll-tint-flash__label {
+  color: #2a1437;
+  text-shadow: 0 6px 18px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.15);
+}
 
 /* ===== Choice swatches (used in colour practice) ===== */
 .ll-swatch {
@@ -129,7 +155,7 @@
 
 /* Mobile tweaks */
 @media (max-width: 600px) {
-  .ll-color-wheel { grid-template-columns: repeat(3, 1fr); }
+  .ll-color-wheel { grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .ll-tile { min-height: 84px; }
   .ll-tile__big { font-size: 40px; }
 }

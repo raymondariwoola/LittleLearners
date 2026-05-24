@@ -73,9 +73,35 @@
   <script>
     // Register the offline service worker. Wrapped in feature-detect so it
     // silently no-ops on file:// or unsupported browsers.
+    //   - updateViaCache: 'none' makes the browser revalidate sw.js itself on
+    //     every load, so a new SW is picked up without a hard refresh.
+    //   - When a new worker has installed and is waiting, ask it to skip waiting
+    //     and reload once it takes control so the user sees the latest assets
+    //     after a single normal refresh.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode disabled */ });
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+          .then((reg) => {
+            const promptUpdate = (worker) => {
+              if (!worker) return;
+              worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                  worker.postMessage('SKIP_WAITING');
+                }
+              });
+            };
+            if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+            reg.addEventListener('updatefound', () => promptUpdate(reg.installing));
+            try { reg.update(); } catch (_) { /* ignore */ }
+          })
+          .catch(() => { /* offline mode disabled */ });
+
+        let reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloaded) return;
+          reloaded = true;
+          window.location.reload();
+        });
       });
     }
   </script>
