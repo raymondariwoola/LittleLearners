@@ -128,6 +128,18 @@
 .ll-parent__stat-num {
   margin-left: auto; color: var(--pp-ink-soft); font-weight: 600;
 }
+/* Mastery heatmap chip surfaced next to each category's name. Colour-coded
+ * so a parent can scan the list quickly without reading every percentage. */
+.ll-parent__chip {
+  padding: 3px 9px; border-radius: 999px;
+  font-family: 'Baloo 2', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--pp-ink);
+  background: #fde9c9;
+  white-space: nowrap;
+}
+.ll-parent__chip.is-mint  { background: var(--pp-mint, #b6e3c8); }
+.ll-parent__chip.is-sun   { background: var(--pp-sun, #ffd66e); }
+.ll-parent__chip.is-coral { background: var(--pp-coral, #ff8a7a); color: #fff; }
 .ll-parent__bar {
   margin-top: 8px; height: 10px; border-radius: 6px;
   background: rgba(0,0,0,0.06); overflow: hidden;

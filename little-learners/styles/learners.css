@@ -102,6 +102,38 @@
 .ll-card[data-cat="counting"]  { --ll-card-tint: linear-gradient(135deg, var(--pp-sky), var(--pp-lavender)); }
 .ll-card[data-cat="phonics"]   { --ll-card-tint: linear-gradient(135deg, var(--pp-mint), var(--pp-pink)); }
 .ll-card[data-cat="story"]     { --ll-card-tint: linear-gradient(135deg, var(--pp-lavender), var(--pp-coral)); }
+.ll-card[data-cat="memory"]    { --ll-card-tint: linear-gradient(135deg, var(--pp-mint), var(--pp-sky)); }
+
+/* ===== Daily Mission card ===== */
+.ll-mission {
+  position: relative; z-index: 1;
+  max-width: 880px; margin: 0 auto 18px;
+  padding: 18px 22px;
+  background: var(--pp-surface);
+  border-radius: 24px; box-shadow: var(--pp-shadow-md);
+  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
+}
+.ll-mission__title { font-family: 'Fredoka', sans-serif; font-size: 20px; color: var(--pp-ink); margin: 0 0 4px; }
+.ll-mission__sub   { font-size: 14px; color: var(--pp-ink-soft); margin: 0 0 10px; }
+.ll-mission__dots  { display: flex; gap: 10px; flex-wrap: wrap; }
+.ll-mission__dot   {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  background: #fef2e0; color: var(--pp-ink);
+  font-size: 13px; font-weight: 600;
+}
+.ll-mission__dot[data-done="true"] {
+  background: var(--pp-mint, #b6e3c8); text-decoration: line-through;
+}
+.ll-mission__dot .em { font-size: 16px; }
+.ll-mission__cta { white-space: nowrap; }
+.ll-mission.is-done {
+  background: linear-gradient(135deg, var(--pp-mint), var(--pp-sun));
+}
+@media (max-width: 560px) {
+  .ll-mission { grid-template-columns: 1fr; }
+  .ll-mission__cta { justify-self: stretch; width: 100%; }
+}
 
 /* Toolbar (hub bottom strip) */
 .ll-toolbar {
@@ -271,3 +303,39 @@
   .ll-card__icon { font-size: 48px; }
   .ll-card__label { font-size: 18px; }
 }
+
+/* ===== Memory Meadow board ===== */
+.ll-memory {
+  display: grid; gap: 14px;
+  width: 100%; max-width: 560px;
+}
+.ll-memory__card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: none; padding: 0;
+  background: transparent; cursor: pointer;
+  perspective: 800px;
+}
+.ll-memory__face {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 18px;
+  font-size: clamp(36px, 8vw, 64px);
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-md);
+  backface-visibility: hidden;
+  transition: transform 0.4s var(--pp-spring);
+}
+.ll-memory__back  { transform: rotateY(0deg);   background: linear-gradient(135deg, var(--pp-mint), var(--pp-sky)); color: #fff; }
+.ll-memory__front { transform: rotateY(180deg); }
+.ll-memory__card.is-flipped .ll-memory__back  { transform: rotateY(-180deg); }
+.ll-memory__card.is-flipped .ll-memory__front { transform: rotateY(0deg); }
+.ll-memory__card.is-matched .ll-memory__front {
+  box-shadow: 0 0 0 4px var(--pp-mint), var(--pp-shadow-md);
+  animation: pp-correct-glow 0.9s ease;
+}
+.ll-memory__card.is-matched { pointer-events: none; }
+@media (max-width: 480px) {
+  .ll-memory { gap: 10px; }
+}
+

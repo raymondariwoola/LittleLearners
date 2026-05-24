@@ -14,6 +14,7 @@ window.PP.Categories = [
   { id: 'counting',  label: 'Counting',    icon: '🔟', page: 'pages/counting.html',  tagline: 'How many?' },
   { id: 'phonics',   label: 'Phonics',     icon: '📖', page: 'pages/phonics.html',   tagline: 'C-A-T... cat!' },
   { id: 'story',     label: 'Story Mode',  icon: '⭐', page: 'pages/story.html',     tagline: 'Hoot needs your help' },
+  { id: 'memory',    label: 'Memory Meadow', icon: '🧠', page: 'pages/memory.html',  tagline: 'Match the pairs' },
 ];
 
 window.PP.AgeModes = [

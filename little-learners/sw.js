@@ -12,7 +12,7 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.2.0';
+const CACHE_VERSION = 'v1.3.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -50,6 +50,7 @@ const PRECACHE = [
   './js/game-food.js',
   './js/game-counting.js',
   './js/game-phonics.js',
+  './js/game-memory.js',
 
   './js/data/categories.js',
   './js/data/letters.js',
@@ -74,6 +75,7 @@ const PRECACHE = [
   './pages/phonics.html',
   './pages/stickers.html',
   './pages/story.html',
+  './pages/memory.html',
   './pages/parent.html',
   './pages/settings.html',
 ];

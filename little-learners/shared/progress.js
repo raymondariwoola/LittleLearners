@@ -128,4 +128,98 @@
 
   window.PP = window.PP || {};
   window.PP.Progress = { app, profile, setProfile, settings, setSettings };
+
+  // ===== PP.Adaptive — lightweight, local-first difficulty model =====
+  // Tracks rolling per-skill confidence in 0..1 so games can make small,
+  // age-appropriate adjustments (an extra distractor, a longer round) when
+  // a child is breezing through. Also exposes a mastery bucket parents can
+  // read in the dashboard ("strong" / "emerging" / "needs repetition").
+  //
+  // Storage lives under the existing `learners` blob so it ships with the
+  // same export/import flow:
+  //   learners.adaptive.<catId> = { conf, plays, mastered, lastAt }
+  //
+  // Everything is best-effort: if nothing has been recorded for a category
+  // we return safe defaults that produce the existing baseline behaviour.
+  (function defineAdaptive() {
+    const learners = () => app('learners');
+    // EMA smoothing factor — small so a single great round doesn't slam the
+    // difficulty up; over ~5-6 rounds confidence settles meaningfully.
+    const ALPHA = 0.35;
+
+    function _state(catId) {
+      const s = learners().get(`adaptive.${catId}`, null);
+      return s && typeof s === 'object'
+        ? { conf: 0.5, plays: 0, mastered: 0, lastAt: 0, ...s }
+        : { conf: 0.5, plays: 0, mastered: 0, lastAt: 0 };
+    }
+
+    // Map a single round outcome to a 0..1 score.
+    //  - 3 stars, 0 attempts            => 1.00
+    //  - 3 stars, 1 attempt             => 0.80
+    //  - 2 stars                        => 0.55
+    //  - 1 star or revealed             => 0.30
+    //  - 0 stars                        => 0.10
+    function _scoreFor({ stars = 0, attempts = 0, revealed = false } = {}) {
+      if (revealed) return 0.3;
+      if (stars >= 3) return attempts <= 0 ? 1.0 : 0.8;
+      if (stars === 2) return 0.55;
+      if (stars === 1) return 0.3;
+      return 0.1;
+    }
+
+    function recordResult(catId, result = {}) {
+      if (!catId) return null;
+      const s = _state(catId);
+      const score = _scoreFor(result);
+      s.conf = Math.max(0, Math.min(1, s.conf * (1 - ALPHA) + score * ALPHA));
+      s.plays = (s.plays || 0) + 1;
+      if (score >= 0.8) s.mastered = (s.mastered || 0) + 1;
+      s.lastAt = Date.now();
+      learners().set(`adaptive.${catId}`, s);
+      return s;
+    }
+
+    function confidence(catId) { return _state(catId).conf; }
+
+    // Translate confidence + age mode into concrete game knobs. Keep toddler
+    // gentle on purpose; older modes get the most lift.
+    function level(catId, ageMode = 'toddler') {
+      const s = _state(catId);
+      const conf = s.conf;
+      // Need a handful of plays before we trust the signal.
+      const trusted = (s.plays || 0) >= 3;
+      let choiceBoost = 0;
+      let roundBoost = 0;
+      let hintDelayMs = 8000;
+      let bucket = 'emerging';
+      if (conf >= 0.75) bucket = 'strong';
+      else if (conf < 0.4) bucket = 'needs-repetition';
+
+      if (trusted && conf >= 0.8 && ageMode !== 'toddler') {
+        choiceBoost = 1;
+        roundBoost = ageMode === 'reader' ? 2 : 1;
+        hintDelayMs = 10000;
+      } else if (trusted && conf <= 0.35) {
+        // Struggling: a touch more guidance, slightly shorter rounds.
+        roundBoost = -1;
+        hintDelayMs = 6500;
+      }
+      return { conf, plays: s.plays || 0, bucket, choiceBoost, roundBoost, hintDelayMs };
+    }
+
+    function snapshot() {
+      const all = learners().get('adaptive', {}) || {};
+      const out = {};
+      Object.keys(all).forEach(id => { out[id] = _state(id); });
+      return out;
+    }
+
+    function reset(catId) {
+      if (catId) learners().remove(`adaptive.${catId}`);
+      else learners().set('adaptive', {});
+    }
+
+    window.PP.Adaptive = { recordResult, confidence, level, snapshot, reset };
+  })();
 })();

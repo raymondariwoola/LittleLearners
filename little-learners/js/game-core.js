@@ -99,6 +99,14 @@
     });
 
     // ===== ctx shared with each mode =====
+    // Adaptive level is read once per boot so a child sees consistent
+    // pacing through their session; it updates next time they open the
+    // category. PP.Adaptive is defined in shared/progress.js and falls
+    // back to neutral defaults when no history exists yet.
+    const adaptive = (PP.Adaptive && PP.Adaptive.level)
+      ? PP.Adaptive.level(opts.catId, ageMode)
+      : { conf: 0.5, plays: 0, bucket: 'emerging', choiceBoost: 0, roundBoost: 0, hintDelayMs: 8000 };
+
     const ctx = {
       get stage() { return $('#stage'); },
       mascot,
@@ -106,7 +114,12 @@
       catId: opts.catId,
       catLabel: opts.label,
       profile,
-      choiceCount: () => CHOICE_COUNT_BY_AGE[ageMode] || 3,
+      adaptive,
+      choiceCount: () => {
+        const base = CHOICE_COUNT_BY_AGE[ageMode] || 3;
+        // Cap at 5 so the grid never feels overwhelming.
+        return Math.min(5, base + (adaptive.choiceBoost || 0));
+      },
       say,
       cheer,
       askChoice,
@@ -206,7 +219,7 @@
               // After a hint nudge, gently sparkle the correct one in toddler mode
               if (ctx.noFail && attempts >= 1) hintCorrect();
             }
-          }, 8000);
+          }, adaptive.hintDelayMs || 8000);
         }
 
         function hintCorrect() {
@@ -227,6 +240,7 @@
             cheer();
             PP.Confetti.burst(...buttonCenter(btn), 50);
             const stars = ctx.noFail ? 3 : Math.max(1, 3 - attempts);
+            recordAdaptive({ stars, attempts, revealed: false });
             setTimeout(() => resolve({ stars, attempts, revealed: false }), 1100);
           } else {
             attempts += 1;
@@ -250,6 +264,7 @@
               PP.Audio.sparkle();
               say(PP.Phrases.reveal(correctItem.label)).then(() => {
                 const stars = ctx.noFail ? 1 : 0;
+                recordAdaptive({ stars, attempts, revealed: true });
                 resolve({ stars, attempts, revealed: true });
               });
               return;
@@ -263,6 +278,14 @@
     function buttonCenter(btn) {
       const r = btn.getBoundingClientRect();
       return [r.left + r.width / 2, r.top + r.height / 2];
+    }
+
+    function recordAdaptive(result) {
+      try {
+        if (PP.Adaptive && PP.Adaptive.recordResult) {
+          PP.Adaptive.recordResult(opts.catId, result);
+        }
+      } catch (_) { /* never let metrics break gameplay */ }
     }
 
     // ===== Results screen =====
@@ -332,14 +355,19 @@
   }
 
   // ===== Round runner (used by Practice & Quiz) =====
-  // Runs a sequence of askChoice rounds, then shows results.
+  // Runs a sequence of askChoice rounds, then shows results. The requested
+  // `total` is gently bumped up or down by PP.Adaptive so confident learners
+  // get a longer set and struggling ones get a shorter one.
   function runRounds({ ctx, total, makeRound, awardSticker, finalMessage }) {
+    const adj = (ctx.adaptive && typeof ctx.adaptive.roundBoost === 'number')
+      ? ctx.adaptive.roundBoost : 0;
+    const effectiveTotal = Math.max(3, Math.min(12, (total || 5) + adj));
     let i = 0;
     let starsTotal = 0;
     const run = () => {
-      if (i >= total) {
+      if (i >= effectiveTotal) {
         // Average to 1-3
-        const stars = Math.max(1, Math.min(3, Math.round(starsTotal / total)));
+        const stars = Math.max(1, Math.min(3, Math.round(starsTotal / effectiveTotal)));
         ctx.showResult({
           stars,
           message: finalMessage || (ctx.profile.name ? `You did it, ${ctx.profile.name}!` : 'You did it!'),
@@ -349,7 +377,7 @@
         return;
       }
       const round = makeRound(i);
-      if (i === total - 1) ctx.say(PP.Phrases.lastQuestion());
+      if (i === effectiveTotal - 1) ctx.say(PP.Phrases.lastQuestion());
       ctx.askChoice(round).then(({ stars }) => {
         starsTotal += stars;
         i += 1;

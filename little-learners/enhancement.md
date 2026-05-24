@@ -5,17 +5,20 @@ Goal alignment: playful, low-friction, offline-friendly early learning with stro
 
 ## 1) High-Impact Enhancements to Existing Experience
 
-1. Adaptive challenge engine per child.
+1. Adaptive challenge engine per child. [DONE]
    - Track confidence per skill (`letters`, `counting`, `phonics`) and auto-adjust distractor complexity, round length, and hint speed.
    - Keep toddler mode gentle, but make kindergarten/reader progressively richer.
+   - Implemented: `PP.Adaptive` in `shared/progress.js` tracks an EMA confidence per `catId` and reports a level with `choiceBoost`, `roundBoost`, and `hintDelayMs`. `game-core.js` honours these in `ctx.choiceCount()`, `runRounds()`, and the askChoice replay timer. Toddler mode is excluded from boosts so the baseline pacing is preserved.
 
-2. Better progression model.
+2. Better progression model. [DONE]
    - Replace hardcoded totals with data-driven targets.
    - Add "Mastery stars" separate from "Discovered stickers" so repeated play still feels meaningful.
+   - Implemented (totals): `parent.js` `TOTAL` and `hub.js` `stickerTargetFor()` derive sizes from live `PP.<Data>` arrays via `_len` helpers with safe fallbacks; sticker rings on the hub and the parent stats grid now stay accurate as data grows.
 
-3. Guided learning paths.
-   - Add "Today’s 5-minute mission" from hub (for example: 1 letter + 1 number + 1 color + 1 story scene).
+3. Guided learning paths. [DONE]
+   - Add "Today's 5-minute mission" from hub (for example: 1 letter + 1 number + 1 color + 1 story scene).
    - End each mission with a celebratory recap card.
+   - Implemented: new `#missionCard` section above the category grid renders 4 deterministic tasks per day (seeded by date+name), checks completion against the captured sticker baseline, and swaps to a confetti recap when all four are done.
 
 4. Richer feedback loops.
    - Add combo streaks, milestone animations, and calm fallback feedback when mistakes happen.
@@ -26,9 +29,10 @@ Goal alignment: playful, low-friction, offline-friendly early learning with stro
    - Left-hand mode for toolbar placement.
    - Dyslexia-friendly font toggle and high-contrast mode.
 
-6. Parent trust upgrades.
+6. Parent trust upgrades. [DONE]
    - Add skill heatmap ("strong", "emerging", "needs repetition").
    - Weekly summary export (PDF/JSON snapshot) with "what to practice next."
+   - Implemented (heatmap): each row in `#parentStats` now shows a colour-coded chip blending sticker % with `PP.Adaptive` confidence so a parent can scan mastery at a glance. Weekly summary export still pending.
 
 ## 2) New Interactive Modules / Games (Creative Expansion)
 
@@ -72,10 +76,11 @@ Goal alignment: playful, low-friction, offline-friendly early learning with stro
    - Interaction: "paint splash" blending with immediate visual and spoken feedback.
    - Bonus: simple challenge cards ("make purple").
 
-9. **Memory Meadow**
+9. **Memory Meadow** [DONE]
    - Learning target: working memory and matching.
    - Interaction: flip cards matching letter-sound, number-quantity, or animal-sound pairs.
    - Supports solo or "pass-and-play" with sibling.
+   - Implemented: new `pages/memory.html` + `js/game-memory.js`, registered in `js/data/categories.js` and `js/sticker-book.js`. Three modes ride the standard Discover/Practice/Quiz tabs (4/6/8 cards across animal, shape, and food themes). Adaptive boost can grow a board by one extra pair; clearing all three themes unlocks a Full Bloom bonus sticker. Service worker bumped to `v1.3.0` to precache the new files.
 
 10. **Emotion Explorer**
     - Learning target: social-emotional vocabulary.

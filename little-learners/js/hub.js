@@ -95,6 +95,113 @@
     }, 350);
   }
 
+  // ===== Daily mission =====
+  // Pick 4 categories deterministically from today's date so the same child
+  // gets the same suggestions across a day even after refreshes. Completion
+  // is detected by comparing today's sticker counts against the baseline
+  // captured the first time the mission was rendered.
+  function _todayKey() {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  function _seededShuffle(items, seedStr) {
+    let h = 2166136261;
+    for (let i = 0; i < seedStr.length; i++) {
+      h ^= seedStr.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    const arr = items.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      const j = h % (i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function _stickerCount(catId) {
+    const s = learners.get(`stickers.${catId}`, []) || [];
+    return s.length;
+  }
+
+  function ensureMission() {
+    const today = _todayKey();
+    const cur = learners.get('mission', null);
+    if (cur && cur.day === today && Array.isArray(cur.tasks) && cur.tasks.length === 4) {
+      return cur;
+    }
+    const pool = (PP.Categories || []).map(c => c.id);
+    const profileName = (PP.Progress.profile().name || 'friend');
+    const tasks = _seededShuffle(pool, today + ':' + profileName).slice(0, 4);
+    const baseline = {};
+    tasks.forEach(id => { baseline[id] = _stickerCount(id); });
+    const fresh = { day: today, tasks, baseline, celebrated: false };
+    learners.set('mission', fresh);
+    return fresh;
+  }
+
+  function _missionStatus(m) {
+    return m.tasks.map(id => {
+      const cat = (PP.Categories || []).find(c => c.id === id);
+      const before = (m.baseline && typeof m.baseline[id] === 'number') ? m.baseline[id] : 0;
+      const now = _stickerCount(id);
+      return { id, cat, done: now > before };
+    });
+  }
+
+  function renderMission() {
+    const root = $('#missionCard');
+    if (!root) return;
+    const m = ensureMission();
+    const status = _missionStatus(m);
+    const doneCount = status.filter(s => s.done).length;
+    const allDone = doneCount === status.length;
+    root.hidden = false;
+    root.classList.toggle('is-done', allDone);
+
+    const dots = status.map(s => {
+      const label = s.cat ? s.cat.label : s.id;
+      const icon = s.cat ? s.cat.icon : '⭐';
+      return `<span class="ll-mission__dot" data-done="${s.done}"><span class="em">${s.done ? '✅' : icon}</span>${label}</span>`;
+    }).join('');
+
+    const titleText = allDone ? "Mission complete! ⭐" : "Today's mission";
+    const subText = allDone
+      ? 'You finished all four! Great hooting!'
+      : `Finish ${status.length - doneCount} more to wrap today.`;
+    const ctaLabel = allDone ? 'See sticker book' : 'Start mission';
+
+    root.innerHTML = `
+      <div>
+        <h2 class="ll-mission__title">${titleText}</h2>
+        <p class="ll-mission__sub">${subText}</p>
+        <div class="ll-mission__dots">${dots}</div>
+      </div>
+      <button type="button" class="pp-btn pp-btn--primary ll-mission__cta">${ctaLabel}</button>`;
+
+    const cta = root.querySelector('.ll-mission__cta');
+    cta.addEventListener('click', () => {
+      PP.Audio.pling();
+      if (allDone) { window.location.href = 'pages/stickers.html'; return; }
+      const next = status.find(s => !s.done);
+      if (!next || !next.cat) return;
+      learners.set('lastCategory', next.id);
+      window.location.href = next.cat.page;
+    });
+
+    if (allDone && !m.celebrated) {
+      learners.set('mission.celebrated', true);
+      try {
+        const r = root.getBoundingClientRect();
+        PP.Confetti.burst(r.left + r.width / 2, r.top + 40, 80);
+      } catch (_) { /* confetti optional */ }
+      PP.UI.toast('Daily mission complete! ⭐', { kind: 'good' });
+    }
+  }
+
   // ===== Category grid =====
   function renderGrid() {
     const grid = $('#catGrid');
@@ -138,6 +245,7 @@
       counting:  len(PP.Numbers)   || 20,
       phonics:   len(PP.Phonics)   || 10,
       story:     5,
+      memory:    6,
     };
     return sizes[id] || 10;
   }
@@ -254,6 +362,7 @@
     $('#hubMascot').replaceChildren(mascotEl);
 
     renderGrid();
+    renderMission();
     renderContinue();
     renderAgeBadge();
     wireToolbar();

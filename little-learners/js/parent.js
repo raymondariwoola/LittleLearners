@@ -23,6 +23,7 @@
     counting:  _len(PP.Numbers,   20),
     phonics:   _len(PP.Phonics,   10),
     story:     5,
+    memory:    6,
   };
 
   async function init() {
@@ -81,16 +82,29 @@
 
     // Stats grid
     const grid = $('#parentStats');
+    const adaptiveSnap = (PP.Adaptive && PP.Adaptive.snapshot) ? PP.Adaptive.snapshot() : {};
     (PP.Categories || []).forEach(cat => {
       const owned = (stickers[cat.id] || []).length;
       const total = TOTAL[cat.id] || 10;
       const pct = Math.min(100, Math.round((owned / total) * 100));
+      // Heatmap chip: blend explicit sticker % with the adaptive confidence
+      // bucket so a child who scored well but hasn't unlocked every sticker
+      // still reads as "Strong". Sticker % is the primary signal.
+      const adapt = adaptiveSnap[cat.id];
+      let chipLabel = 'Needs repetition';
+      let chipClass = 'is-coral';
+      if (pct >= 80 || (adapt && adapt.conf >= 0.8 && adapt.plays >= 3)) {
+        chipLabel = 'Strong'; chipClass = 'is-mint';
+      } else if (pct >= 30 || (adapt && adapt.conf >= 0.5)) {
+        chipLabel = 'Emerging'; chipClass = 'is-sun';
+      }
       const card = document.createElement('div');
       card.className = 'll-parent__stat';
       card.innerHTML = `
         <div class="ll-parent__stat-row">
           <span class="ll-parent__stat-icon" aria-hidden="true">${cat.icon}</span>
           <strong>${cat.label}</strong>
+          <span class="ll-parent__chip ${chipClass}">${chipLabel}</span>
           <span class="ll-parent__stat-num">${owned}/${total}</span>
         </div>
         <div class="ll-parent__bar"><span style="width:${pct}%"></span></div>`;

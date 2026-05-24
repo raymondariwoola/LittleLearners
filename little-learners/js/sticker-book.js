@@ -21,6 +21,16 @@
     food:      () => (PP.Food      || []).map(f => ({ id: f.id, label: f.label, big: f.emoji, sub: f.label, kind: 'emoji' })),
     phonics:   () => (PP.Phonics   || []).map(w => ({ id: w.word, label: w.word, big: w.word, sub: w.emoji, kind: 'word' })),
     story:     () => Array.from({ length: 5 }).map((_, i) => ({ id: 'scene-' + (i+1), label: 'Scene ' + (i+1), big: '⭐', sub: 'Story ' + (i+1), kind: 'star' })),
+    // Memory Meadow awards one badge per pair-count / theme variant cleared.
+    // Keep this in sync with the rounds defined in js/game-memory.js.
+    memory:    () => [
+      { id: 'meadow-4',   label: 'First Match',   big: '🌱', sub: '4 cards',    kind: 'emoji' },
+      { id: 'meadow-6',   label: 'Sprout',        big: '🌿', sub: '6 cards',    kind: 'emoji' },
+      { id: 'meadow-8',   label: 'Bloomer',       big: '🌼', sub: '8 cards',    kind: 'emoji' },
+      { id: 'meadow-12',  label: 'Meadow Master', big: '🏵️', sub: '12 cards',   kind: 'emoji' },
+      { id: 'meadow-flip',label: 'Quick Flipper', big: '⚡',  sub: 'Few peeks', kind: 'emoji' },
+      { id: 'meadow-full',label: 'Full Bloom',    big: '🌻', sub: 'All themes', kind: 'emoji' },
+    ],
   };
 
   const CATS = (PP.Categories || []).slice();
