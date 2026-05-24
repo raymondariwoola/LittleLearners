@@ -12,7 +12,7 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.1.0';
+const CACHE_VERSION = 'v1.2.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 const PRECACHE = [

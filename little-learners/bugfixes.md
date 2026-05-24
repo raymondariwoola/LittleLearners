@@ -62,3 +62,46 @@
    - Listens for `controllerchange` and reloads the page once when a new SW takes over, so users transparently land on the latest version.
 
 **One-time cleanup for existing users:** the first load after this change still runs under the *old* SW. The new SW will install, activate (skipWaiting), claim clients, and the `controllerchange` listener will auto-reload the page once — after that, normal refreshes show updates immediately.
+
+---
+
+### 5. Food (Discover) — text blends with tile background + roster too small
+**Symptom:** Food labels (Apple, Banana, …) were barely readable against the cream tile and only 12 items existed.
+
+**Cause:** `.ll-tile--food` and `.ll-tile--animal` had no explicit text colour, so their `.ll-tile__sub` labels picked up `--pp-ink-soft` (light lavender in night theme) on a cream background.
+
+**Fix:**
+- In [styles/categories.css](little-learners/styles/categories.css): set `.ll-tile--animal, .ll-tile--food, .ll-tile--word { color: #2a1437; }` and pinned `.ll-tile__sub` inside those variants to `#3d2452` with `font-weight: 700` for stronger contrast.
+- In [js/data/food.js](little-learners/js/data/food.js): expanded the food roster from 12 → 43 items across **fruit**, **veggie**, **grain**, **dairy**, **protein**, **meal**, **treat**, and **drink** groups (orange, watermelon, pineapple, peach, blueberries, lemon, cherries, tomato, potato, cucumber, avocado, pepper, mushroom, rice, noodles, pancakes, butter, yogurt, chicken, fish, meat, burger, sandwich, taco, soup, cookie, cake, donut, ice cream, candy, juice, water).
+
+---
+
+### 6. Phonics (Discover) — word text invisible
+**Symptom:** Words on the Phonics Discover tiles (CAT, DOG, SUN, …) blended into the light lavender/pink background, especially in night theme.
+
+**Cause:** `.ll-tile--word` had no explicit text colour, so the big word text inherited `--pp-ink` (cream in night theme).
+
+**Fix:**
+- Same CSS rule in [styles/categories.css](little-learners/styles/categories.css) (`.ll-tile--word { color: #2a1437; }` plus dark-purple `.ll-tile__sub`).
+- Bonus: expanded the phonics word list in [js/data/phonics.js](little-learners/js/data/phonics.js) from 10 → 22 CVC words (DAD, BAT, COW, FOX, OWL, BEE, CAR, BAG, PEN, KEY, EGG, PIE) so Practice/Quiz rounds feel less repetitive.
+
+---
+
+### 7. Story mode — same script every play
+**Symptom:** Story mode ran the exact same 5 scenes (lost hat → 3 acorns → yellow sun → owl → crescent moon) in the exact same order with the exact same narration on every play. No replay value.
+
+**Cause:** [js/game-story.js](little-learners/js/game-story.js) defined `SCENES` as a hard-coded constant array with one fixed target per scene and one narration string each.
+
+**Fix:** Rewrote scene assembly as **randomized generators** in [js/game-story.js](little-learners/js/game-story.js):
+- Each scene *type* (`sceneLetter`, `sceneColor`, `sceneAnimal`, `sceneShape`, `sceneCount`) now picks a random target from its data file and a random narration variant from a pool of 4 lines.
+- `sceneCount` randomises both the item (acorns, apples, stars, flowers, ladybugs, bees, cookies, balloons, strawberries, fish, butterflies, leaves) and the target count (2–5).
+- `buildScenes()` includes one of every available type for breadth, adds 1–2 random extras for surprise, shuffles the order, and caps at 6 scenes.
+- A fresh `buildScenes()` is called on Play-Again so the same session can be replayed with a brand-new story.
+- Sticker ids are stamped with a per-play index so re-running the same scene type still earns a sticker rather than silently de-duping.
+
+Result: tens of thousands of unique narrative permutations across the five scene types, with name-aware narration variants when the child profile has a name.
+
+---
+
+### Service worker bump
+`CACHE_VERSION` bumped from `v1.1.0` → `v1.2.0` in [sw.js](little-learners/sw.js) so the new SW activates and clears the old cache on the next visit.

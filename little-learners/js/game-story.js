@@ -20,34 +20,128 @@
   }
 
   let mascot, ageMode, profile;
+  let SCENES = [];
 
-  const SCENES = [
-    {
-      id: 'scene-1',
-      narration: name => `${name ? name + ', ' : ''}Professor Hoot lost his hat! His hat starts with the letter H. Can you find it?`,
-      build: askLetter('H'),
-    },
-    {
-      id: 'scene-2',
-      narration: () => `Yay! Now Hoot wants to count his three little acorns. Tap each one!`,
-      build: countItems('🌰', 3),
-    },
-    {
-      id: 'scene-3',
-      narration: () => `Look! The sun is up. Which colour is the sun?`,
-      build: askColor('yellow'),
-    },
-    {
-      id: 'scene-4',
-      narration: () => `Time to meet a friend. Hoot says hoo-hoo. Which one is the owl?`,
-      build: askAnimal('owl'),
-    },
-    {
-      id: 'scene-5',
-      narration: () => `Last thing! The moon is rising. Which shape is the moon tonight?`,
-      build: askShape('crescent'),
-    },
-  ];
+  // ===== Randomized scene generators =====
+  // Each generator returns a fresh scene { id, narration(name), build(ctx) }
+  // with a randomly chosen target and a random narration variant, so no two
+  // playthroughs feel identical.
+
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  function nameLead(name) { return name ? `${name}, ` : ''; }
+
+  function sceneLetter() {
+    const letters = (PP.Letters || []);
+    const target = pick(letters);
+    const lines = [
+      (n) => `${nameLead(n)}Professor Hoot lost his ${target.word.toLowerCase()}! It starts with the letter ${target.letter}. Can you find ${target.letter}?`,
+      (n) => `${nameLead(n)}Hoot is thinking of a ${target.word.toLowerCase()} ${target.emoji}. What letter does ${target.word} start with? Find ${target.letter}!`,
+      (n) => `${nameLead(n)}Look! ${target.emoji} ${target.word} starts with ${target.letter}. Tap the letter ${target.letter}!`,
+      (n) => `${nameLead(n)}Can you help Hoot? Tap the letter ${target.letter}, like in ${target.word}!`,
+    ];
+    return {
+      id: `letter-${target.letter}`,
+      narration: pick(lines),
+      build: askLetter(target.letter),
+    };
+  }
+
+  function sceneColor() {
+    const colors = (PP.Colors || []);
+    const target = pick(colors);
+    const lines = [
+      (n) => `${nameLead(n)}Hoot sees a ${target.example} ${target.emoji}. What colour is it?`,
+      (n) => `${nameLead(n)}Find the colour ${target.label}, like a ${target.example}!`,
+      (n) => `${nameLead(n)}Look at this ${target.example} ${target.emoji}! Tap the ${target.label} one.`,
+      (n) => `${nameLead(n)}Hoot painted something ${target.label}! Can you point to ${target.label}?`,
+    ];
+    return {
+      id: `color-${target.id}`,
+      narration: pick(lines),
+      build: askColor(target.id),
+    };
+  }
+
+  function sceneAnimal() {
+    const animals = (PP.Animals || []);
+    if (!animals.length) return null;
+    const target = pick(animals);
+    const sound = target.sound ? ` It says ${target.sound}.` : '';
+    const lines = [
+      (n) => `${nameLead(n)}Hoot wants to meet a friend.${sound} Which one is the ${target.label}?`,
+      (n) => `${nameLead(n)}Listen carefully!${sound} Find the ${target.label}!`,
+      (n) => `${nameLead(n)}Who's that in the bushes? ${target.emoji || ''} Tap the ${target.label}!`,
+      (n) => `${nameLead(n)}Time to say hello to the ${target.label}!${sound}`,
+    ];
+    return {
+      id: `animal-${target.id}`,
+      narration: pick(lines),
+      build: askAnimal(target.id),
+    };
+  }
+
+  function sceneShape() {
+    const shapes = (PP.Shapes || []);
+    if (!shapes.length) return null;
+    const target = pick(shapes);
+    const lines = [
+      (n) => `${nameLead(n)}Hoot is drawing in the sand. Find the ${target.label}!`,
+      (n) => `${nameLead(n)}Look up at the clouds! Which one is a ${target.label}?`,
+      (n) => `${nameLead(n)}Can you spot the ${target.label} shape?`,
+      (n) => `${nameLead(n)}Tap the ${target.label}, ${target.label === 'Circle' ? 'round and round!' : "you've got this!"}`,
+    ];
+    return {
+      id: `shape-${target.id}`,
+      narration: pick(lines),
+      build: askShape(target.id),
+    };
+  }
+
+  function sceneCount() {
+    const things = [
+      { emoji: '🌰', label: 'acorns' },
+      { emoji: '🍎', label: 'apples' },
+      { emoji: '⭐', label: 'stars' },
+      { emoji: '🌸', label: 'flowers' },
+      { emoji: '🐞', label: 'ladybugs' },
+      { emoji: '🐝', label: 'busy bees' },
+      { emoji: '🍪', label: 'cookies' },
+      { emoji: '🎈', label: 'balloons' },
+      { emoji: '🍓', label: 'strawberries' },
+      { emoji: '🐠', label: 'little fish' },
+      { emoji: '🦋', label: 'butterflies' },
+      { emoji: '🍂', label: 'leaves' },
+    ];
+    const t = pick(things);
+    const n = randInt(2, 5);
+    const lines = [
+      (nm) => `${nameLead(nm)}Help Hoot count the ${t.label}! Tap each one.`,
+      (nm) => `${nameLead(nm)}One, two, three… can you count the ${t.label}?`,
+      (nm) => `${nameLead(nm)}Hoot found ${t.label} ${t.emoji}! Tap them one by one to count.`,
+      (nm) => `${nameLead(nm)}Let's count to ${n}! Tap each ${t.label.replace(/s$/, '')}.`,
+    ];
+    return {
+      id: `count-${t.emoji}-${n}`,
+      narration: pick(lines),
+      build: countItems(t.emoji, n),
+    };
+  }
+
+  function shuffleArr(a) { return a.slice().sort(() => Math.random() - 0.5); }
+
+  // Build a fresh story for this play: always at least one of each scene type
+  // we can run (depending on which data files loaded), shuffled, capped at 5–6.
+  function buildScenes() {
+    const generators = [sceneLetter, sceneColor, sceneAnimal, sceneShape, sceneCount];
+    // Always include each type once if its data is present, then add 1–2 random extras.
+    const baseline = generators.map(g => g()).filter(Boolean);
+    const extras = [pick(generators)(), pick(generators)()].filter(Boolean);
+    const chosen = shuffleArr([...baseline, ...extras]).slice(0, Math.min(6, baseline.length + 1));
+    // Stamp unique scene index so the sticker id is unique per play.
+    return chosen.map((s, i) => ({ ...s, id: `${s.id}-i${i}` }));
+  }
 
   function init() {
     PP.Theme.apply();
@@ -72,6 +166,7 @@
     document.body.appendChild(mascot);
 
     $('#storyBack').addEventListener('click', () => { PP.Voice.cancel(); window.location.href = '../index.html'; });
+    SCENES = buildScenes();
     renderStepDots(0);
     startScene(0);
   }
@@ -136,7 +231,7 @@
     PP.Mascot.setMood(mascot, 'celebrating');
     PP.Voice.speak(`The end! Wonderful job${profile.name ? ', ' + profile.name : ''}!`);
 
-    $('#storyAgain').addEventListener('click', () => { PP.Audio.pling(); startScene(0); });
+    $('#storyAgain').addEventListener('click', () => { PP.Audio.pling(); SCENES = buildScenes(); startScene(0); });
     $('#storyHome').addEventListener('click', () => { PP.Audio.pling(); window.location.href = '../index.html'; });
   }
 

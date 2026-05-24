@@ -182,8 +182,17 @@
 .ll-tile--food,
 .ll-tile--word {
   background: linear-gradient(135deg, #fff7e0, #ffe2c4);
+  color: #2a1437;
 }
 .ll-tile--word { background: linear-gradient(135deg, #efe6ff, #ffe2f0); }
+/* Sub-labels under emoji tiles need a darker tone than --pp-ink-soft (which
+   becomes light lavender in the night theme) for proper contrast. */
+.ll-tile--animal .ll-tile__sub,
+.ll-tile--food   .ll-tile__sub,
+.ll-tile--word   .ll-tile__sub {
+  color: #3d2452;
+  font-weight: 700;
+}
 
 /* ===== Body figure ===== */
 .ll-figure-wrap {
