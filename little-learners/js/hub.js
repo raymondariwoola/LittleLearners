@@ -213,6 +213,9 @@
       sessionStorage.setItem('pp_parent_gate', '1');
       window.location.href = 'pages/parent.html';
     });
+
+    const settingsBtn = $('#settingsBtn');
+    if (settingsBtn) settingsBtn.addEventListener('click', () => PP.Settings.open());
   }
 
   // ===== Init =====

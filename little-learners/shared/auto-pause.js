@@ -9,10 +9,18 @@
  * event in the last IDLE_WINDOW_MS.
  */
 (function () {
-  const LIMIT_MS = 20 * 60 * 1000;
+  const DEFAULT_LIMIT_MIN = 20;
   const TICK_MS  = 15 * 1000;
   const IDLE_WINDOW_MS = 60 * 1000;
   const STORAGE_KEY = 'autoPauseDay';
+
+  // Parent can override the limit (in minutes) via settings.dailyLimitMin.
+  // 0 disables the auto-pause entirely.
+  function limitMs() {
+    const s = (PP.Progress && PP.Progress.settings && PP.Progress.settings()) || {};
+    const m = (typeof s.dailyLimitMin === 'number') ? s.dailyLimitMin : DEFAULT_LIMIT_MIN;
+    return m > 0 ? m * 60 * 1000 : Infinity;
+  }
 
   let lastInteractionAt = Date.now();
   let lastTickAt = Date.now();
@@ -52,7 +60,7 @@
     state.ms += dt;
     writeState(state);
 
-    if (state.ms >= LIMIT_MS && !shown) showBreak();
+    if (state.ms >= limitMs() && !shown) showBreak();
   }
 
   function showBreak() {
@@ -102,7 +110,7 @@
 
     // If the saved counter is already over the limit when a new page loads, show immediately.
     const state = readState();
-    if (state.ms >= LIMIT_MS) setTimeout(showBreak, 1500);
+    if (state.ms >= limitMs()) setTimeout(showBreak, 1500);
   }
 
   if (document.readyState === 'loading') {

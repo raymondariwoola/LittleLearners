@@ -21,6 +21,8 @@
 
   let muted = !!S().voiceMuted;
   let rate = (typeof S().voiceRate === 'number') ? S().voiceRate : 1.0;
+  let pitch = (typeof S().voicePitch === 'number') ? S().voicePitch : 1.08;
+  let voiceVol = (typeof S().voiceVolume === 'number') ? S().voiceVolume : 1.0;
   let savedVoiceName = S().voiceName || null;
 
   // High-quality friendly voices in roughly best-first order.
@@ -103,12 +105,12 @@
   function speak(text, opts = {}) {
     if (!supported || muted || !text) return Promise.resolve();
     if (opts.interrupt !== false) synth.cancel();
-    const basePitch = opts.pitch ?? 1.08;
+    const basePitch = opts.pitch ?? pitch;
     const baseRate = effectiveRate(opts);
     const jitter = (Math.random() - 0.5) * 0.05;
-    const pitch = basePitch + jitter;
+    const usePitch = basePitch + jitter;
     const chunks = chunkSentences(text);
-    return chainChunks(chunks, pitch, baseRate, opts);
+    return chainChunks(chunks, usePitch, baseRate, opts);
   }
 
   function chunkSentences(text) {
@@ -129,9 +131,9 @@
     return new Promise(resolve => {
       const u = new SpeechSynthesisUtterance(text);
       if (selectedVoice) u.voice = selectedVoice;
-      u.pitch = Math.max(0, Math.min(2, opts.pitch ?? 1.08));
+      u.pitch = Math.max(0, Math.min(2, opts.pitch ?? pitch));
       u.rate = Math.max(0.1, Math.min(2, opts.rate ?? rate));
-      u.volume = opts.volume ?? 1;
+      u.volume = Math.max(0, Math.min(1, opts.volume ?? voiceVol));
       u.onend = resolve;
       u.onerror = resolve;
       setTimeout(() => synth.speak(u), 8);
@@ -203,6 +205,23 @@
     rate = Math.max(0.6, Math.min(1.6, r));
     saveS({ voiceRate: rate });
   }
+  function setPitch(p) {
+    pitch = Math.max(0.6, Math.min(1.6, p));
+    saveS({ voicePitch: pitch });
+  }
+  function setVolume(v) {
+    voiceVol = Math.max(0, Math.min(1, v));
+    saveS({ voiceVolume: voiceVol });
+  }
+  // Friendly label for the quality bucket — used by the settings UI.
+  const QUALITY_LABEL = {
+    premium: 'Premium', enhanced: 'Enhanced', neural: 'Natural',
+    standard: 'Standard', basic: 'Basic', none: '—',
+  };
+  function qualityFor(v) {
+    const q = detectQuality(v);
+    return { id: q, label: QUALITY_LABEL[q] || 'Standard' };
+  }
   function toggleMute() {
     muted = !muted;
     if (muted) cancel();
@@ -214,12 +233,15 @@
 
   const api = {
     speak, cancel, ask, spell, count, cheer,
-    setVoiceByName, setRate, toggleMute, setMuted,
+    setVoiceByName, setRate, setPitch, setVolume, toggleMute, setMuted,
     getVoices: () => voices.slice(),
     getSelected: () => selectedVoice,
     getQuality: () => voiceQuality,
+    qualityFor,
     isMuted: () => muted,
     getRate: () => rate,
+    getPitch: () => pitch,
+    getVolume: () => voiceVol,
     isSupported: () => supported,
     onChange,
   };

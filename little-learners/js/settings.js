@@ -1,207 +1,569 @@
-/* Settings modal — reusable. Opens via PP.Settings.open().
+/* Settings page — every control here writes through to a real backing store
+ * (PP.Voice, PP.Audio, PP.Theme, PP.Progress) and the change takes effect
+ * immediately. Nothing on this screen is decorative.
  *
- * Surfaces voice (mute, rate, voice picker), audio (mute, volume),
- * theme (auto / day / night), and a reset.
- *
- * All writes go through PP.Voice, PP.Audio, PP.Theme, PP.Progress so this
- * file stays a pure UI layer.
+ * The page is parent-gated. PP.Settings.open() navigates here after a gate.
  */
 (function () {
+  const $ = (s, r = document) => r.querySelector(s);
+
+  // ===== Public entry points =====
   function open() {
-    const body = document.createElement('div');
-    body.className = 'll-settings';
-
-    body.appendChild(section('🔊 Voice', voiceBlock()));
-    body.appendChild(section('🔔 Sounds', audioBlock()));
-    body.appendChild(section('🌗 Theme',  themeBlock()));
-    body.appendChild(section('🧹 Reset',  resetBlock(close)));
-
-    const m = PP.UI.modal({
-      title: 'Settings',
-      bodyEl: body,
-      actions: [{ label: 'Done' }],
-      mascotMood: 'happy',
-    });
-    function close() { m.close(); }
-    return m;
-  }
-
-  function section(title, contentEl) {
-    const s = document.createElement('section');
-    s.className = 'll-settings__sec';
-    const h = document.createElement('h3');
-    h.textContent = title;
-    s.appendChild(h);
-    s.appendChild(contentEl);
-    return s;
-  }
-
-  // ===== Voice =====
-  function voiceBlock() {
-    const wrap = document.createElement('div');
-    wrap.className = 'll-settings__row';
-
-    // Mute toggle
-    const muteBtn = document.createElement('button');
-    muteBtn.type = 'button';
-    muteBtn.className = 'pp-btn pp-btn--secondary';
-    const setMuteLabel = () => muteBtn.textContent = PP.Voice.isMuted() ? '🔇 Voice muted' : '🔊 Voice on';
-    setMuteLabel();
-    muteBtn.addEventListener('click', () => { PP.Voice.toggleMute(); setMuteLabel(); });
-    wrap.appendChild(muteBtn);
-
-    // Rate slider
-    const rate = document.createElement('label');
-    rate.className = 'll-settings__field';
-    const rateNow = PP.Voice.getRate ? PP.Voice.getRate() : 0.95;
-    rate.innerHTML = `<span>Speed</span>
-      <input type="range" min="0.6" max="1.2" step="0.05" value="${rateNow}" />
-      <output>${rateNow.toFixed(2)}×</output>`;
-    const slider = rate.querySelector('input');
-    const out = rate.querySelector('output');
-    slider.addEventListener('input', () => {
-      const v = Number(slider.value);
-      out.textContent = v.toFixed(2) + '×';
-      PP.Voice.setRate(v);
-    });
-    wrap.appendChild(rate);
-
-    // Voice picker
-    const pick = document.createElement('label');
-    pick.className = 'll-settings__field';
-    pick.innerHTML = `<span>Storyteller</span><select></select>
-      <button type="button" class="pp-btn pp-btn--icon" data-test aria-label="Test voice">🗣️</button>`;
-    const sel = pick.querySelector('select');
-    const test = pick.querySelector('[data-test]');
-
-    function fillVoices() {
-      const voices = (PP.Voice.getVoices && PP.Voice.getVoices()) || [];
-      const cur = (PP.Voice.getSelected && PP.Voice.getSelected()) || null;
-      sel.innerHTML = '';
-      if (!voices.length) {
-        const o = document.createElement('option');
-        o.textContent = 'System default';
-        sel.appendChild(o); sel.disabled = true;
-        return;
-      }
-      sel.disabled = false;
-      voices.forEach(v => {
-        const o = document.createElement('option');
-        o.value = v.name;
-        o.textContent = `${v.name} (${v.lang || ''})`;
-        if (cur && cur.name === v.name) o.selected = true;
-        sel.appendChild(o);
-      });
-    }
-    fillVoices();
-    sel.addEventListener('change', () => PP.Voice.setVoiceByName && PP.Voice.setVoiceByName(sel.value));
-    test.addEventListener('click', () => PP.Voice.speak('Hi! I am ready to read with you!', { interrupt: true }));
-    if (PP.Voice.onChange) PP.Voice.onChange(fillVoices);
-    wrap.appendChild(pick);
-
-    return wrap;
-  }
-
-  // ===== Audio =====
-  function audioBlock() {
-    const wrap = document.createElement('div');
-    wrap.className = 'll-settings__row';
-
-    const muteBtn = document.createElement('button');
-    muteBtn.type = 'button';
-    muteBtn.className = 'pp-btn pp-btn--secondary';
-    const setLabel = () => muteBtn.textContent = PP.Audio.isMuted() ? '🔕 Sounds muted' : '🔔 Sounds on';
-    setLabel();
-    muteBtn.addEventListener('click', () => { PP.Audio.toggleMute(); setLabel(); });
-    wrap.appendChild(muteBtn);
-
-    const vol = document.createElement('label');
-    vol.className = 'll-settings__field';
-    const vNow = PP.Audio.getVolume ? PP.Audio.getVolume() : 0.7;
-    vol.innerHTML = `<span>Volume</span>
-      <input type="range" min="0" max="1" step="0.05" value="${vNow}" />
-      <output>${Math.round(vNow*100)}%</output>`;
-    const slider = vol.querySelector('input');
-    const out = vol.querySelector('output');
-    slider.addEventListener('input', () => {
-      const v = Number(slider.value);
-      out.textContent = Math.round(v*100) + '%';
-      PP.Audio.setVolume && PP.Audio.setVolume(v);
-    });
-    wrap.appendChild(vol);
-
-    const test = document.createElement('button');
-    test.type = 'button';
-    test.className = 'pp-btn pp-btn--secondary';
-    test.textContent = '🎵 Test';
-    test.addEventListener('click', () => { PP.Audio.unlock && PP.Audio.unlock(); PP.Audio.correct(); });
-    wrap.appendChild(test);
-
-    return wrap;
-  }
-
-  // ===== Theme =====
-  function themeBlock() {
-    const wrap = document.createElement('div');
-    wrap.className = 'll-settings__row';
-
-    const options = [
-      { id: 'auto', label: '🌓 Auto' },
-      { id: 'day',  label: '☀️ Day'  },
-      { id: 'night',label: '🌙 Night'},
-    ];
-    const current = PP.Progress.settings().theme || 'auto';
-    options.forEach(o => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pp-btn pp-btn--secondary' + (o.id === current ? ' is-active' : '');
-      b.textContent = o.label;
-      b.addEventListener('click', () => {
-        wrap.querySelectorAll('button').forEach(x => x.classList.remove('is-active'));
-        b.classList.add('is-active');
-        if (o.id === 'auto') { PP.Theme.setAuto && PP.Theme.setAuto(true); PP.Theme.setOverride && PP.Theme.setOverride(null); }
-        else { PP.Theme.setAuto && PP.Theme.setAuto(false); PP.Theme.setOverride && PP.Theme.setOverride(o.id); }
-        PP.Theme.apply && PP.Theme.apply();
-      });
-      wrap.appendChild(b);
-    });
-
-    return wrap;
-  }
-
-  // ===== Reset =====
-  function resetBlock(close) {
-    const wrap = document.createElement('div');
-    wrap.className = 'll-settings__row';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'pp-btn pp-btn--secondary';
-    btn.textContent = '🧹 Clear my stickers';
-    btn.addEventListener('click', async () => {
-      const ok = await PP.UI.parentGate();
+    (async () => {
+      const already = sessionStorage.getItem('pp_parent_gate') === '1';
+      const ok = already || await PP.UI.parentGate();
       if (!ok) return;
-      const confirmEl = document.createElement('div');
-      confirmEl.style.cssText = 'display:flex;flex-direction:column;gap:10px;text-align:center;';
-      confirmEl.innerHTML = `<p>This clears all sticker progress for Little Learners. Photos and profile are kept.</p>`;
-      const m = PP.UI.modal({
-        title: 'Are you sure?',
-        bodyEl: confirmEl,
-        mascotMood: 'thinking',
-        actions: [
-          { label: 'Cancel' },
-          { label: 'Yes, clear', kind: 'warn', onClick: () => {
-            PP.Progress.app('learners').reset();
-            PP.UI.toast('Stickers cleared.', { kind: 'good' });
-            m.close();
-            close && close();
-          } },
-        ],
-      });
-    });
-    wrap.appendChild(btn);
-    return wrap;
+      sessionStorage.setItem('pp_parent_gate', '1');
+      const inPages = window.location.pathname.indexOf('/pages/') !== -1;
+      window.location.href = inPages ? 'settings.html' : 'pages/settings.html';
+    })();
   }
 
   window.PP = window.PP || {};
   window.PP.Settings = { open };
+
+  function isSettingsPage() { return !!document.getElementById('settings'); }
+
+  async function init() {
+    if (!isSettingsPage()) return;
+    PP.Theme.apply();
+    const gated = sessionStorage.getItem('pp_parent_gate') === '1';
+    if (!gated) {
+      const ok = await PP.UI.parentGate();
+      if (!ok) { window.location.href = '../index.html'; return; }
+      sessionStorage.setItem('pp_parent_gate', '1');
+    }
+    render();
+    if (PP.Voice && PP.Voice.onChange) PP.Voice.onChange(renderVoiceSection);
+  }
+
+  // ===== Render =====
+  function render() {
+    const root = $('#settings');
+    root.innerHTML = `
+      <div class="ll-cat__bar">
+        <button id="setBack" class="ll-cat__back" type="button" aria-label="Back">←</button>
+        <div class="ll-cat__title"><span aria-hidden="true">⚙️</span><span>Settings</span></div>
+        <div class="ll-cat__modes"></div>
+      </div>
+
+      <section class="ll-set">
+        <div id="secProfile"  class="ll-set__card"></div>
+        <div id="secVoice"    class="ll-set__card"></div>
+        <div id="secSound"    class="ll-set__card"></div>
+        <div id="secTheme"    class="ll-set__card"></div>
+        <div id="secMotion"   class="ll-set__card"></div>
+        <div id="secLimit"    class="ll-set__card"></div>
+        <div id="secConfetti" class="ll-set__card"></div>
+        <div id="secData"     class="ll-set__card"></div>
+        <div id="secDanger"   class="ll-set__card ll-set__card--danger"></div>
+        <p class="ll-set__foot">Little Learners · v${(PP.version || '1.0.0')} · All data stays on this device.</p>
+      </section>`;
+
+    $('#setBack').addEventListener('click', () => {
+      const fromParent = document.referrer && document.referrer.indexOf('parent.html') !== -1;
+      window.location.href = fromParent ? 'parent.html' : '../index.html';
+    });
+
+    renderProfileSection();
+    renderVoiceSection();
+    renderSoundSection();
+    renderThemeSection();
+    renderMotionSection();
+    renderLimitSection();
+    renderConfettiSection();
+    renderDataSection();
+    renderDangerSection();
+  }
+
+  function sectionShell(el, title, subtitle) {
+    el.innerHTML = `
+      <header class="ll-set__head">
+        <h2>${title}</h2>
+        ${subtitle ? `<p>${subtitle}</p>` : ''}
+      </header>
+      <div class="ll-set__body"></div>`;
+    return el.querySelector('.ll-set__body');
+  }
+
+  // ----- Profile -----
+  function renderProfileSection() {
+    const wrap = $('#secProfile');
+    const body = sectionShell(wrap, '🧒 Child profile', 'Used to greet your little one.');
+    const p = PP.Progress.profile();
+    body.innerHTML = `
+      <label class="ll-set__field">
+        <span>Name</span>
+        <input id="setName" type="text" maxlength="20" value="${escAttr(p.name || '')}" placeholder="First name" />
+      </label>
+      <div class="ll-set__field">
+        <span>Age mode</span>
+        <div id="setAge" class="ll-set__pills"></div>
+      </div>`;
+
+    const ageWrap = body.querySelector('#setAge');
+    PP.AgeModes.forEach(m => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'll-set__pill' + (m.id === p.ageMode ? ' is-active' : '');
+      b.innerHTML = `<span>${m.icon}</span><strong>${m.label}</strong><em>${m.caption}</em>`;
+      b.addEventListener('click', () => {
+        PP.Progress.setProfile({ ageMode: m.id });
+        document.documentElement.setAttribute('data-age-mode', m.id);
+        ageWrap.querySelectorAll('.ll-set__pill').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        PP.Audio.pling();
+      });
+      ageWrap.appendChild(b);
+    });
+
+    let nameTimer = null;
+    body.querySelector('#setName').addEventListener('input', e => {
+      const val = e.target.value.slice(0, 20);
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(() => PP.Progress.setProfile({ name: val.trim() }), 250);
+    });
+  }
+
+  // ----- Voice -----
+  function renderVoiceSection() {
+    const wrap = $('#secVoice');
+    if (!wrap) return;
+    const body = sectionShell(wrap, '🗣️ Voice',
+      'Pick a friendly storyteller. <strong>Premium</strong> and <strong>Natural</strong> voices sound the most human. On macOS / iOS you can download more in <em>System Settings → Accessibility → Spoken Content → System Voice</em>.');
+
+    if (!PP.Voice.isSupported || !PP.Voice.isSupported()) {
+      body.innerHTML = `<p>This browser does not support speech. Try Safari, Chrome, or Edge on a recent device.</p>`;
+      return;
+    }
+
+    const voices = (PP.Voice.getVoices && PP.Voice.getVoices()) || [];
+
+    body.innerHTML = `
+      <div class="ll-set__row">
+        <button id="vMute" type="button" class="pp-btn pp-btn--secondary"></button>
+        <button id="vTest" type="button" class="pp-btn pp-btn--primary">▶ Try this voice</button>
+      </div>
+
+      <label class="ll-set__field">
+        <span>Speed <output id="vRateOut"></output></span>
+        <input id="vRate" type="range" min="0.7" max="1.3" step="0.05" />
+      </label>
+
+      <label class="ll-set__field">
+        <span>Pitch <output id="vPitchOut"></output></span>
+        <input id="vPitch" type="range" min="0.8" max="1.4" step="0.02" />
+      </label>
+
+      <label class="ll-set__field">
+        <span>Volume <output id="vVolOut"></output></span>
+        <input id="vVol" type="range" min="0" max="1" step="0.05" />
+      </label>
+
+      <div class="ll-set__field">
+        <span>Storyteller (${voices.length} available)</span>
+        <div id="vList" class="ll-voice-list"></div>
+      </div>`;
+
+    const setMuteLabel = () => $('#vMute').textContent = PP.Voice.isMuted() ? '🔇 Voice muted' : '🔊 Voice on';
+    setMuteLabel();
+    $('#vMute').addEventListener('click', () => {
+      PP.Voice.toggleMute(); setMuteLabel();
+      if (!PP.Voice.isMuted()) PP.Voice.speak('Voice on!', { interrupt: true });
+    });
+    $('#vTest').addEventListener('click', () => {
+      const p = PP.Progress.profile();
+      const name = p.name ? p.name + ', ' : '';
+      PP.Voice.speak(`Hi ${name}I'm Hoot! Let's learn together today.`, { interrupt: true });
+    });
+
+    bindSlider('#vRate',  '#vRateOut',  PP.Voice.getRate(),                                  v => `${v.toFixed(2)}×`,         v => PP.Voice.setRate(v));
+    bindSlider('#vPitch', '#vPitchOut', PP.Voice.getPitch ? PP.Voice.getPitch() : 1.08,      v => v.toFixed(2),              v => PP.Voice.setPitch(v));
+    bindSlider('#vVol',   '#vVolOut',   PP.Voice.getVolume ? PP.Voice.getVolume() : 1,       v => Math.round(v * 100) + '%', v => PP.Voice.setVolume(v));
+
+    renderVoiceList(voices, PP.Voice.getSelected && PP.Voice.getSelected());
+  }
+
+  function renderVoiceList(voices, current) {
+    const list = $('#vList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!voices.length) {
+      list.innerHTML = `<p class="ll-set__hint">Loading voices… try again in a moment.</p>`;
+      return;
+    }
+    const order = ['premium', 'enhanced', 'neural', 'standard', 'basic'];
+    const groups = {};
+    voices.forEach(v => {
+      const q = PP.Voice.qualityFor ? PP.Voice.qualityFor(v).id : 'standard';
+      (groups[q] = groups[q] || []).push(v);
+    });
+
+    order.forEach(key => {
+      const vs = groups[key];
+      if (!vs || !vs.length) return;
+      const head = document.createElement('div');
+      head.className = 'll-voice-group';
+      head.textContent = labelForQuality(key) + (key === 'premium' || key === 'neural' ? ' · most human' : '');
+      list.appendChild(head);
+      vs.forEach(v => list.appendChild(voiceRow(v, current)));
+    });
+  }
+
+  function labelForQuality(k) {
+    return ({
+      premium:  '✨ Premium', enhanced: '★ Enhanced', neural: '🌿 Natural',
+      standard: '· Standard', basic:    '· Basic',
+    })[k] || k;
+  }
+
+  function voiceRow(v, current) {
+    const row = document.createElement('div');
+    const isActive = current && current.name === v.name;
+    row.className = 'll-voice' + (isActive ? ' is-active' : '');
+    const q = PP.Voice.qualityFor ? PP.Voice.qualityFor(v) : { id: 'standard', label: 'Standard' };
+    row.innerHTML = `
+      <button type="button" class="ll-voice__pick" data-name="${escAttr(v.name)}" aria-pressed="${isActive}">
+        <span class="ll-voice__name">${escHtml(v.name)}</span>
+        <span class="ll-voice__lang">${escHtml(v.lang || '')}${v.localService ? ' · on device' : ''}</span>
+      </button>
+      <span class="ll-voice__badge ll-voice__badge--${q.id}">${q.label}</span>
+      <button type="button" class="ll-voice__test" aria-label="Preview ${escAttr(v.name)}">▶</button>`;
+
+    row.querySelector('.ll-voice__pick').addEventListener('click', () => {
+      PP.Voice.setVoiceByName(v.name);
+      $('#vList').querySelectorAll('.ll-voice').forEach(x => x.classList.remove('is-active'));
+      row.classList.add('is-active');
+      PP.Voice.speak('Hi! I will be your storyteller.', { interrupt: true });
+    });
+    row.querySelector('.ll-voice__test').addEventListener('click', () => previewVoice(v));
+    return row;
+  }
+
+  function previewVoice(v) {
+    if (!('speechSynthesis' in window)) return;
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+    const u = new SpeechSynthesisUtterance(`Hello! I'm ${v.name.split(/[\(]/)[0].trim()}.`);
+    u.voice = v;
+    u.pitch  = PP.Voice.getPitch  ? PP.Voice.getPitch()  : 1.08;
+    u.rate   = PP.Voice.getRate   ? PP.Voice.getRate()   : 1.0;
+    u.volume = PP.Voice.getVolume ? PP.Voice.getVolume() : 1;
+    window.speechSynthesis.speak(u);
+  }
+
+  // ----- Sounds -----
+  function renderSoundSection() {
+    const body = sectionShell($('#secSound'), '🔔 Sound effects', 'Pops, dings, and unlock chimes.');
+    body.innerHTML = `
+      <div class="ll-set__row">
+        <button id="sMute" type="button" class="pp-btn pp-btn--secondary"></button>
+        <button id="sTest" type="button" class="pp-btn pp-btn--primary">🎵 Test</button>
+      </div>
+      <label class="ll-set__field">
+        <span>Volume <output id="sVolOut"></output></span>
+        <input id="sVol" type="range" min="0" max="1" step="0.05" />
+      </label>`;
+
+    const setLabel = () => $('#sMute').textContent = PP.Audio.isMuted() ? '🔕 Sounds muted' : '🔔 Sounds on';
+    setLabel();
+    $('#sMute').addEventListener('click', () => { PP.Audio.toggleMute(); setLabel(); if (!PP.Audio.isMuted()) PP.Audio.unlock(); });
+    $('#sTest').addEventListener('click', () => PP.Audio.unlock());
+
+    bindSlider('#sVol', '#sVolOut', PP.Audio.getVolume(), v => Math.round(v * 100) + '%', v => {
+      PP.Audio.setVolume(v); PP.Audio.pling();
+    });
+  }
+
+  // ----- Theme -----
+  function renderThemeSection() {
+    const body = sectionShell($('#secTheme'), '🌗 Theme', 'Auto switches to a calm night palette after sunset.');
+    const s = PP.Progress.settings();
+    const cur = s.themeOverride || (s.dayNightAuto === false ? 'day' : 'auto');
+    body.innerHTML = `<div id="tList" class="ll-set__pills"></div>`;
+    const opts = [
+      { id: 'auto',  label: 'Auto',  icon: '🌓' },
+      { id: 'day',   label: 'Day',   icon: '☀️' },
+      { id: 'night', label: 'Night', icon: '🌙' },
+    ];
+    const list = body.querySelector('#tList');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'll-set__pill' + (o.id === cur ? ' is-active' : '');
+      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong>`;
+      b.addEventListener('click', () => {
+        list.querySelectorAll('.ll-set__pill').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        if (o.id === 'auto') PP.Theme.setAuto(true);
+        else PP.Theme.setOverride(o.id);
+      });
+      list.appendChild(b);
+    });
+  }
+
+  // ----- Motion -----
+  function renderMotionSection() {
+    const body = sectionShell($('#secMotion'), '🎢 Motion', 'Reduce bounces, flips, and confetti for kids sensitive to motion.');
+    const s = PP.Progress.settings();
+    const cur = s.reducedMotion === true ? 'reduced' : s.reducedMotion === false ? 'full' : 'auto';
+    body.innerHTML = `<div id="mList" class="ll-set__pills"></div>`;
+    const opts = [
+      { id: 'auto',    label: 'Auto',    icon: '🔄', sub: 'follows device' },
+      { id: 'full',    label: 'Full',    icon: '✨', sub: 'all animations' },
+      { id: 'reduced', label: 'Reduced', icon: '🧘', sub: 'gentle' },
+    ];
+    const list = body.querySelector('#mList');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'll-set__pill' + (o.id === cur ? ' is-active' : '');
+      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong><em>${o.sub}</em>`;
+      b.addEventListener('click', () => {
+        list.querySelectorAll('.ll-set__pill').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        const val = o.id === 'reduced' ? true : o.id === 'full' ? false : null;
+        PP.Progress.setSettings({ reducedMotion: val });
+        PP.Theme.apply();
+      });
+      list.appendChild(b);
+    });
+  }
+
+  // ----- Daily limit -----
+  function renderLimitSection() {
+    const body = sectionShell($('#secLimit'), '⏱️ Daily play time',
+      'After this much active play, Hoot will gently suggest a break. Resets each day.');
+    const cur = (() => {
+      const v = PP.Progress.settings().dailyLimitMin;
+      return typeof v === 'number' ? v : 20;
+    })();
+    body.innerHTML = `<div id="limList" class="ll-set__pills"></div>
+      <p class="ll-set__hint" id="limNow"></p>`;
+    const opts = [
+      { v: 0,  label: 'Off' },
+      { v: 10, label: '10 min' },
+      { v: 15, label: '15 min' },
+      { v: 20, label: '20 min' },
+      { v: 30, label: '30 min' },
+      { v: 45, label: '45 min' },
+      { v: 60, label: '60 min' },
+    ];
+    const list = body.querySelector('#limList');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'll-set__pill ll-set__pill--compact' + (o.v === cur ? ' is-active' : '');
+      b.innerHTML = `<strong>${o.label}</strong>`;
+      b.addEventListener('click', () => {
+        list.querySelectorAll('.ll-set__pill').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        PP.Progress.setSettings({ dailyLimitMin: o.v });
+        showLimitNow();
+      });
+      list.appendChild(b);
+    });
+
+    function showLimitNow() {
+      const snap = PP.AutoPause && PP.AutoPause.snapshot && PP.AutoPause.snapshot();
+      const minsUsed = snap ? Math.floor(snap.ms / 60000) : 0;
+      $('#limNow').innerHTML = `Today so far: <strong>${minsUsed} min</strong>
+        <button id="limReset" type="button" class="ll-link">Reset timer</button>`;
+      $('#limReset').addEventListener('click', () => {
+        if (PP.AutoPause && PP.AutoPause.reset) PP.AutoPause.reset();
+        PP.UI.toast('Timer reset', { kind: 'good' });
+        showLimitNow();
+      });
+    }
+    showLimitNow();
+  }
+
+  // ----- Confetti -----
+  function renderConfettiSection() {
+    const body = sectionShell($('#secConfetti'), '🎉 Celebrations', 'How much confetti for big wins.');
+    const cur = PP.Progress.settings().confettiLevel || 'full';
+    body.innerHTML = `<div id="cList" class="ll-set__pills"></div>
+      <div class="ll-set__row" style="margin-top:8px;">
+        <button id="cTest" type="button" class="pp-btn pp-btn--secondary">🎊 Preview</button>
+      </div>`;
+    const opts = [
+      { id: 'off',    label: 'Off',    icon: '🚫' },
+      { id: 'gentle', label: 'Gentle', icon: '🍃' },
+      { id: 'full',   label: 'Full',   icon: '🎉' },
+    ];
+    const list = body.querySelector('#cList');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'll-set__pill' + (o.id === cur ? ' is-active' : '');
+      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong>`;
+      b.addEventListener('click', () => {
+        list.querySelectorAll('.ll-set__pill').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        PP.Progress.setSettings({ confettiLevel: o.id });
+      });
+      list.appendChild(b);
+    });
+    body.querySelector('#cTest').addEventListener('click', () => {
+      const lvl = PP.Progress.settings().confettiLevel || 'full';
+      const n = lvl === 'off' ? 0 : lvl === 'gentle' ? 20 : 80;
+      if (n && PP.Confetti && PP.Confetti.burst) {
+        PP.Confetti.burst(window.innerWidth / 2, window.innerHeight / 2, n);
+        PP.Audio.unlock();
+      } else PP.UI.toast('Celebrations are off');
+    });
+  }
+
+  // ----- Data -----
+  function renderDataSection() {
+    const body = sectionShell($('#secData'), '💾 Your data', 'Save or restore everything from a JSON file.');
+    body.innerHTML = `
+      <div class="ll-set__row">
+        <button id="dExport" type="button" class="pp-btn pp-btn--mint">⬇️ Export progress</button>
+        <label class="pp-btn pp-btn--lavender" style="cursor:pointer;">
+          ⬆️ Import progress
+          <input id="dImport" type="file" accept="application/json" hidden />
+        </label>
+      </div>
+      <p class="ll-set__hint">Exports include profile, stickers, and settings. Nothing leaves this device.</p>`;
+    body.querySelector('#dExport').addEventListener('click', exportJson);
+    body.querySelector('#dImport').addEventListener('change', importJson);
+  }
+
+  // ----- Danger zone -----
+  function renderDangerSection() {
+    const body = sectionShell($('#secDanger'), '🧹 Reset', 'These actions cannot be undone.');
+    body.innerHTML = `
+      <div class="ll-set__row">
+        <button id="rStickers" type="button" class="pp-btn pp-btn--secondary">🧽 Clear stickers</button>
+        <button id="rAll"      type="button" class="pp-btn pp-btn--warn">💥 Reset everything</button>
+      </div>
+      <p class="ll-set__hint">Reset everything clears profile, stickers, settings, photos, and the daily timer.</p>`;
+    body.querySelector('#rStickers').addEventListener('click', () => confirmAndDo({
+      title: 'Clear all stickers?',
+      msg: 'This removes every collected sticker. Profile and settings stay.',
+      label: 'Yes, clear stickers',
+      action: () => {
+        PP.Progress.app('learners').reset();
+        PP.UI.toast('Stickers cleared.', { kind: 'good' });
+      },
+    }));
+    body.querySelector('#rAll').addEventListener('click', () => confirmAndDo({
+      title: 'Reset everything?',
+      msg: 'This deletes the child profile, all stickers, every setting, uploaded family photos, and the daily play timer. You will start over from onboarding.',
+      label: 'Yes, reset everything',
+      action: nukeEverything,
+    }));
+  }
+
+  // ===== Helpers =====
+  function bindSlider(sel, outSel, initial, format, onChange) {
+    const el = $(sel), out = $(outSel);
+    el.value = initial;
+    out.textContent = format(Number(initial));
+    el.addEventListener('input', () => {
+      const v = Number(el.value);
+      out.textContent = format(v);
+      onChange(v);
+    });
+  }
+
+  function confirmAndDo({ title, msg, label, action }) {
+    const body = document.createElement('div');
+    body.style.cssText = 'text-align:center;';
+    body.innerHTML = `<p>${msg}</p>`;
+    PP.UI.modal({
+      title, bodyEl: body, mascotMood: 'thinking', dismissible: false,
+      actions: [
+        { label: 'Cancel' },
+        { label, primary: true, onClick: (close) => {
+            try { action(); } catch (e) { console.error(e); }
+            close();
+          } },
+      ],
+    });
+  }
+
+  function exportJson() {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      app: 'little-learners',
+      version: PP.version || '1.0.0',
+      profile:  PP.Progress.profile(),
+      settings: PP.Progress.settings(),
+      learners: PP.Progress.app('learners').exportAll(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `little-learners-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    PP.UI.toast('Progress exported.', { kind: 'good' });
+  }
+
+  function importJson(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (data.profile)  PP.Progress.setProfile(data.profile);
+        if (data.settings) PP.Progress.setSettings(data.settings);
+        if (data.learners) PP.Progress.app('learners').importAll(data.learners);
+        PP.UI.toast('Progress imported!', { kind: 'good' });
+        render();
+      } catch (err) {
+        PP.UI.toast('That file did not look right.', { kind: 'warn' });
+      }
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  }
+
+  // Full wipe: localStorage, sessionStorage (parent gate flag), IndexedDB photos, SW cache.
+  function nukeEverything() {
+    try {
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf('pp_') === 0) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+      sessionStorage.removeItem('pp_parent_gate');
+    } catch (_) {}
+
+    const dbPromise = new Promise(resolve => {
+      try {
+        const req = indexedDB.deleteDatabase('pp_family');
+        req.onsuccess = req.onerror = req.onblocked = () => resolve();
+      } catch (_) { resolve(); }
+    });
+
+    const cachePromise = (async () => {
+      try {
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.filter(n => n.indexOf('pp-') === 0).map(n => caches.delete(n)));
+        }
+      } catch (_) {}
+    })();
+
+    Promise.all([dbPromise, cachePromise]).then(() => {
+      PP.UI.toast('Everything cleared. Starting over…', { kind: 'good' });
+      setTimeout(() => { window.location.href = '../index.html'; }, 900);
+    });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+  }
+  function escAttr(s) { return escHtml(s).replace(/"/g, '&quot;'); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

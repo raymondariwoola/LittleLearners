@@ -6,7 +6,7 @@
  *  - For Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.1';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -69,6 +69,7 @@ const PRECACHE = [
   './pages/stickers.html',
   './pages/story.html',
   './pages/parent.html',
+  './pages/settings.html',
 ];
 
 self.addEventListener('install', (event) => {
