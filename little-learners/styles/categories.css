@@ -137,3 +137,171 @@
 /* Toddler mode bumps */
 :root[data-age-mode="toddler"] .ll-tile { min-height: 130px; }
 :root[data-age-mode="toddler"] .ll-tile__big { font-size: 68px; }
+
+/* =============================================================
+   Phase 5 additions: animals, body parts figure, family,
+   food, counting tray, phonics tiles.
+   ============================================================= */
+
+.ll-tile__emoji { font-size: 56px; line-height: 1; }
+
+/* Generic emoji-tile grids */
+.ll-animals-grid,
+.ll-food-grid,
+.ll-words-grid {
+  display: grid; gap: 14px; width: 100%; max-width: 920px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+.ll-tile--animal,
+.ll-tile--food,
+.ll-tile--word {
+  background: linear-gradient(135deg, #fff7e0, #ffe2c4);
+}
+.ll-tile--word { background: linear-gradient(135deg, #efe6ff, #ffe2f0); }
+
+/* ===== Body figure ===== */
+.ll-figure-wrap {
+  width: 100%; max-width: 380px; margin: 4px auto 18px;
+  display: flex; justify-content: center;
+}
+.ll-figure { width: 100%; height: auto; }
+.ll-fig-hot {
+  fill: transparent; stroke: transparent; cursor: pointer;
+  transition: fill 0.25s ease, stroke 0.25s ease;
+}
+.ll-fig-hot:hover { fill: rgba(255, 217, 102, 0.35); stroke: var(--pp-coral); stroke-width: 2; }
+.ll-fig-hot.is-hi {
+  fill: rgba(255, 217, 102, 0.6);
+  stroke: var(--pp-coral); stroke-width: 3;
+  animation: ll-hot-pulse 0.9s ease;
+}
+@keyframes ll-hot-pulse {
+  0%   { transform: scale(1); transform-origin: center; }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ===== Family ===== */
+.ll-family-grid {
+  display: grid; gap: 16px; width: 100%; max-width: 820px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.ll-family-card {
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow-md);
+  padding: 14px 12px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ll-family-tap {
+  position: relative;
+  width: 100%; aspect-ratio: 1; min-height: 120px;
+  border: none; background: linear-gradient(135deg, #fff2d4, #ffd8c2);
+  border-radius: var(--pp-radius);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: transform 0.25s var(--pp-spring);
+}
+.ll-family-tap:hover { transform: translateY(-3px); }
+.ll-family-tap:active { transform: scale(0.96); }
+.ll-family-emoji { font-size: 72px; line-height: 1; }
+.ll-family-photo {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  border-radius: var(--pp-radius);
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.ll-family-card.has-photo .ll-family-photo { opacity: 1; }
+.ll-family-card.has-photo .ll-family-emoji { opacity: 0; }
+.ll-family-label { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 18px; }
+.ll-family-tools { display: flex; gap: 6px; }
+.ll-family-tools .pp-btn { min-height: 40px; min-width: 40px; padding: 6px 10px; font-size: 18px; }
+
+/* For practice/quiz choice rendering with photo */
+.ll-family-photo.is-pure {
+  position: relative; opacity: 1;
+  width: 92%; aspect-ratio: 1; border-radius: 50%;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+/* ===== Counting tray ===== */
+.ll-count-tray {
+  display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+  max-width: 780px; padding: 22px;
+  background: rgba(255, 245, 220, 0.6);
+  border-radius: var(--pp-radius-lg);
+  margin: 4px auto;
+}
+.ll-count-bubble {
+  position: relative;
+  width: 84px; height: 84px;
+  border: none; border-radius: 50%;
+  background: var(--pp-surface);
+  box-shadow: var(--pp-shadow-md);
+  font-size: 48px; cursor: pointer;
+  transition: transform 0.25s var(--pp-spring);
+}
+.ll-count-bubble:hover { transform: scale(1.06); }
+.ll-count-bubble.is-counted {
+  background: var(--pp-mint); color: var(--pp-ink);
+  animation: ll-bubble-pop 0.35s var(--pp-spring);
+}
+@keyframes ll-bubble-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.ll-count-num {
+  position: absolute; top: -8px; right: -8px;
+  background: var(--pp-coral); color: white;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
+  font-size: 18px; min-width: 28px; height: 28px;
+  border-radius: 50%; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+/* ===== Phonics spell ===== */
+.ll-spell-slots {
+  display: flex; gap: 12px; justify-content: center;
+  margin: 8px 0 18px;
+}
+.ll-spell-slot {
+  width: 72px; height: 84px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 3px dashed var(--pp-lavender);
+  font-family: 'Fredoka', sans-serif; font-size: 48px; font-weight: 700;
+  color: var(--pp-ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.ll-spell-slot.is-filled {
+  border-style: solid;
+  background: var(--pp-mint);
+  animation: ll-bubble-pop 0.35s var(--pp-spring);
+}
+.ll-spell-bank {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+}
+.ll-spell-tile {
+  min-width: 70px; min-height: 70px;
+  font-family: 'Fredoka', sans-serif; font-size: 34px;
+}
+.ll-spell-tile.is-used { opacity: 0.3; pointer-events: none; }
+.ll-spell-tile.is-wrong { animation: pp-shake 0.4s; }
+.ll-spell-tile.is-hint { animation: pp-glow 1.2s ease; box-shadow: 0 0 0 4px var(--pp-sun); }
+@keyframes pp-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+@keyframes pp-glow {
+  0% { box-shadow: 0 0 0 0 var(--pp-sun); }
+  50% { box-shadow: 0 0 0 8px var(--pp-sun); }
+  100% { box-shadow: 0 0 0 0 var(--pp-sun); }
+}
+
+/* Toddler bumps for new bits */
+:root[data-age-mode="toddler"] .ll-count-bubble { width: 110px; height: 110px; font-size: 62px; }
+:root[data-age-mode="toddler"] .ll-spell-slot   { width: 90px; height: 100px; font-size: 56px; }
+:root[data-age-mode="toddler"] .ll-spell-tile   { min-width: 90px; min-height: 90px; font-size: 42px; }
