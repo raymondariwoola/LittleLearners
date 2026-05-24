@@ -62,9 +62,20 @@
   <script src="shared/audio.js"></script>
   <script src="shared/confetti.js"></script>
   <script src="shared/ui.js"></script>
+  <script src="shared/auto-pause.js"></script>
 
   <!-- App scripts -->
   <script src="js/data/categories.js"></script>
   <script src="js/hub.js"></script>
+
+  <script>
+    // Register the offline service worker. Wrapped in feature-detect so it
+    // silently no-ops on file:// or unsupported browsers.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode disabled */ });
+      });
+    }
+  </script>
 </body>
 </html>
