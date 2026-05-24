@@ -128,6 +128,12 @@
         const ok = await PP.UI.parentGate();
         if (!ok) return;
         delPhoto(r.id).then(() => {
+          // Free the blob URL we created for this card so long sessions
+          // with repeated add/remove cycles don't slowly leak memory.
+          if (_objectUrls.has(r.id)) {
+            URL.revokeObjectURL(_objectUrls.get(r.id));
+            _objectUrls.delete(r.id);
+          }
           card.classList.remove('has-photo');
           photoEl.style.backgroundImage = '';
           removeBtn.hidden = true;
@@ -151,12 +157,21 @@
       const inp = document.createElement('input');
       inp.type = 'file';
       inp.accept = 'image/*';
+      // Some mobile browsers (notably stricter iOS Safari flows) ignore
+      // .click() on inputs that aren't in the DOM. Attach it hidden, then
+      // clean it up once we get the change event.
+      inp.style.position = 'fixed';
+      inp.style.left = '-9999px';
+      inp.style.opacity = '0';
+      const cleanup = () => { if (inp.parentNode) inp.parentNode.removeChild(inp); };
       inp.addEventListener('change', () => {
         const f = inp.files && inp.files[0];
+        cleanup();
         if (!f) return resolve(null);
         // Downscale on the client to keep IndexedDB lean (≤ 720px).
         downscale(f, 720).then(resolve).catch(() => resolve(f));
       });
+      document.body.appendChild(inp);
       inp.click();
     });
   }

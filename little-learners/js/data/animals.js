@@ -1,7 +1,8 @@
 /* Animals roster.
- * soundUrl is optional; if a real MP3 sits at /assets/animals/<id>.mp3 we'll
- * play it via PP.Audio.playSample(). Otherwise we fall back to the spoken
- * onomatopoeia + a friendly chord.
+ * soundUrl is optional; if a real MP3 sits at <appRoot>/assets/animals/<id>.mp3
+ * we'll play it via PP.Audio.playSample(). Paths are resolved relative to the
+ * app root (index.html), so pages under /pages/ work without rewriting URLs.
+ * Otherwise we fall back to the spoken onomatopoeia + a friendly chord.
  */
 window.PP = window.PP || {};
 window.PP.Animals = [

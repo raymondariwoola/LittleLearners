@@ -205,7 +205,9 @@
   gap: 14px;
 }
 .ll-set__card--danger {
+  border: 2px solid var(--pp-coral);
   border: 2px solid color-mix(in oklab, var(--pp-coral) 60%, transparent);
+  background: var(--pp-surface);
   background: color-mix(in oklab, var(--pp-surface) 92%, var(--pp-coral) 8%);
 }
 .ll-set__head h2 {
@@ -235,6 +237,7 @@
 .ll-set__field input[type="text"] {
   padding: 12px 14px;
   border-radius: 14px;
+  border: 2px solid var(--pp-ink-soft);
   border: 2px solid color-mix(in oklab, var(--pp-ink-soft) 30%, transparent);
   background: var(--pp-surface-2);
   color: var(--pp-ink);
@@ -326,6 +329,7 @@
 .ll-voice-list {
   max-height: 360px;
   overflow-y: auto;
+  border: 1px solid var(--pp-ink-soft);
   border: 1px solid color-mix(in oklab, var(--pp-ink-soft) 18%, transparent);
   border-radius: 16px;
   padding: 6px;
@@ -350,8 +354,9 @@
   border-radius: 12px;
   transition: background 0.15s ease;
 }
-.ll-voice:hover { background: color-mix(in oklab, var(--pp-surface) 70%, transparent); }
+.ll-voice:hover { background: var(--pp-surface); background: color-mix(in oklab, var(--pp-surface) 70%, transparent); }
 .ll-voice.is-active {
+  background: var(--pp-mint);
   background: color-mix(in oklab, var(--pp-mint) 35%, var(--pp-surface));
 }
 .ll-voice__pick {
@@ -375,6 +380,7 @@
   letter-spacing: 0.04em;
   padding: 4px 8px;
   border-radius: 999px;
+  background: var(--pp-surface-2);
   background: color-mix(in oklab, var(--pp-ink-soft) 18%, transparent);
   color: var(--pp-ink);
   white-space: nowrap;
@@ -392,9 +398,11 @@
   color: #1a3a28;
 }
 .ll-voice__badge--standard {
+  background: var(--pp-surface-2);
   background: color-mix(in oklab, var(--pp-ink-soft) 22%, transparent);
 }
 .ll-voice__badge--basic {
+  background: var(--pp-surface-2);
   background: color-mix(in oklab, var(--pp-ink-soft) 12%, transparent);
   color: var(--pp-ink-soft);
 }

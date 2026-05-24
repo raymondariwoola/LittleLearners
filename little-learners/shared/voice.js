@@ -104,7 +104,11 @@
 
   function speak(text, opts = {}) {
     if (!supported || muted || !text) return Promise.resolve();
-    if (opts.interrupt !== false) synth.cancel();
+    // `force: true` is an explicit "speak now" alias used by a few games for
+    // counting/feedback chimes. Treat it as a request to interrupt any
+    // currently-queued speech regardless of how `interrupt` is set.
+    const shouldInterrupt = opts.force === true ? true : (opts.interrupt !== false);
+    if (shouldInterrupt) synth.cancel();
     const basePitch = opts.pitch ?? pitch;
     const baseRate = effectiveRate(opts);
     const jitter = (Math.random() - 0.5) * 0.05;

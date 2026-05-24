@@ -59,12 +59,19 @@
 
       $('#onboardSave').addEventListener('click', () => {
         const name = (nameInput.value || '').trim().slice(0, 20);
+        if (!name) {
+          nameInput.focus();
+          nameInput.setAttribute('aria-invalid', 'true');
+          PP.UI.toast('Please add a name to continue');
+          return;
+        }
+        nameInput.removeAttribute('aria-invalid');
         const ageMode = $('.ll-onboard__age.is-selected', ageList)?.dataset.id || 'toddler';
         PP.Progress.setProfile({ name, ageMode, createdAt: Date.now() });
         PP.Audio.unlock();
         root.hidden = true;
         resolve();
-      }, { once: true });
+      });
     });
   }
 
@@ -114,12 +121,25 @@
     }));
   }
 
-  // Loose targets for the progress ring; will refine per category later.
+  // Sticker targets are derived from the live data arrays so they always
+  // match whatever each category currently rosters. Story stays fixed
+  // because the sticker book renders a fixed 5-slot roster.
   function stickerTargetFor(id) {
-    return ({
-      letters: 26, numbers: 20, colors: 12, animals: 15, shapes: 10,
-      bodyparts: 14, family: 9, food: 12, counting: 10, phonics: 10, story: 5,
-    })[id] || 10;
+    const len = (arr) => Array.isArray(arr) ? arr.length : 0;
+    const sizes = {
+      letters:   len(PP.Letters)   || 26,
+      numbers:   len(PP.Numbers)   || 20,
+      colors:    len(PP.Colors)    || 12,
+      animals:   len(PP.Animals)   || 15,
+      shapes:    len(PP.Shapes)    || 10,
+      bodyparts: len(PP.BodyParts) || 14,
+      family:    len(PP.Family)    || 9,
+      food:      len(PP.Food)      || 12,
+      counting:  len(PP.Numbers)   || 20,
+      phonics:   len(PP.Phonics)   || 10,
+      story:     5,
+    };
+    return sizes[id] || 10;
   }
 
   function onCategoryTap(cat, btnEl) {
@@ -152,10 +172,12 @@
     const cfg = PP.AgeModes.find(a => a.id === m) || PP.AgeModes[0];
     const el = $('#ageBadge');
     el.innerHTML = `${cfg.icon} <span>${cfg.label}</span>`;
-    el.addEventListener('click', async () => {
+    // Use onclick (single slot) so repeated renderAgeBadge() calls cannot
+    // stack handlers and trigger the parent gate multiple times.
+    el.onclick = async () => {
       const ok = await PP.UI.parentGate();
       if (ok) openAgeMenu();
-    });
+    };
   }
 
   function openAgeMenu() {

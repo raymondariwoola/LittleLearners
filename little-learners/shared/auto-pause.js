@@ -80,10 +80,23 @@
       dismissible: false,
       mascotMood: 'sleepy',
       actions: [
-        { label: '🏠 Go home', onClick: (close) => {
-            close();
+        { label: '🏠 Go home', onClick: async (close) => {
             const path = window.location.pathname;
-            if (path.indexOf('/pages/') !== -1) window.location.href = '../index.html';
+            if (path.indexOf('/pages/') !== -1) {
+              // From a category page, going home is a real navigation away,
+              // so it's fine to close the modal and leave.
+              close();
+              window.location.href = '../index.html';
+              return;
+            }
+            // Already on the hub — "Go home" would do nothing useful AND
+            // would let the child keep playing past the limit. Require the
+            // parent gate (same as the "more time" action) before dismissing.
+            const ok = await PP.UI.parentGate();
+            if (!ok) return;
+            writeState({ day: today(), ms: 0 });
+            shown = false;
+            close();
           }
         },
         { label: '👩‍🏫 Grown-up: more time', primary: true, onClick: async (close) => {

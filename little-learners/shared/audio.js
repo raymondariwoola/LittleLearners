@@ -130,14 +130,31 @@
 
   // ===== MP3 sample loader (parent-supplied) =====
   // Used by Animals etc. Falls back silently if files missing.
+  // Relative URLs (e.g. "assets/animals/cow.mp3") are resolved against the
+  // app root, NOT the current page. Without this fix, loading from
+  // /pages/animals.html would incorrectly fetch /pages/assets/animals/cow.mp3.
   const sampleCache = new Map();
+  function appRoot() {
+    // The app's root is the directory containing index.html. All pages live
+    // under "<root>/pages/", so detect that and walk up one level.
+    const path = location.pathname.replace(/[^/]*$/, ''); // strip filename
+    if (/\/pages\/$/.test(path)) return path.replace(/pages\/$/, '');
+    return path;
+  }
+  function resolveSampleUrl(url) {
+    if (!url) return url;
+    if (/^(?:[a-z]+:|\/\/|\/|data:|blob:)/i.test(url)) return url;
+    try { return new URL(url, location.origin + appRoot()).toString(); }
+    catch { return url; }
+  }
   function loadSample(url) {
-    if (sampleCache.has(url)) return sampleCache.get(url);
-    const p = fetch(url, { cache: 'force-cache' })
+    const resolved = resolveSampleUrl(url);
+    if (sampleCache.has(resolved)) return sampleCache.get(resolved);
+    const p = fetch(resolved, { cache: 'force-cache' })
       .then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('404')))
       .then(buf => getCtx().decodeAudioData(buf))
-      .catch(err => { sampleCache.delete(url); throw err; });
-    sampleCache.set(url, p);
+      .catch(err => { sampleCache.delete(resolved); throw err; });
+    sampleCache.set(resolved, p);
     return p;
   }
   function playSample(url, opts = {}) {

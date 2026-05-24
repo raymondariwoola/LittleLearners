@@ -7,10 +7,22 @@
   const $ = (s, r = document) => r.querySelector(s);
   const learners = PP.Progress.app('learners');
 
-  // Roster lengths so % calculations make sense.
+  // Roster lengths so % calculations make sense. Derived from the live data
+  // arrays so they stay accurate as datasets grow; fall back to known sizes
+  // if a data module isn't loaded on this page.
+  const _len = (arr, fb) => (Array.isArray(arr) && arr.length) ? arr.length : fb;
   const TOTAL = {
-    letters: 26, numbers: 20, colors: 12, animals: 15, shapes: 10,
-    bodyparts: 14, family: 9, food: 12, counting: 20, phonics: 10, story: 5,
+    letters:   _len(PP.Letters,   26),
+    numbers:   _len(PP.Numbers,   20),
+    colors:    _len(PP.Colors,    12),
+    animals:   _len(PP.Animals,   15),
+    shapes:    _len(PP.Shapes,    10),
+    bodyparts: _len(PP.BodyParts, 14),
+    family:    _len(PP.Family,    9),
+    food:      _len(PP.Food,      12),
+    counting:  _len(PP.Numbers,   20),
+    phonics:   _len(PP.Phonics,   10),
+    story:     5,
   };
 
   async function init() {

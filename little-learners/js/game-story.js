@@ -132,15 +132,18 @@
   function shuffleArr(a) { return a.slice().sort(() => Math.random() - 0.5); }
 
   // Build a fresh story for this play: always at least one of each scene type
-  // we can run (depending on which data files loaded), shuffled, capped at 5–6.
+  // we can run (depending on which data files loaded), shuffled, capped at 5.
+  // The sticker book has a fixed roster of 5 story slots (scene-1..scene-5),
+  // so we save canonical `scene-N` ids on completion to keep totals aligned.
+  const STORY_SLOTS = 5;
   function buildScenes() {
     const generators = [sceneLetter, sceneColor, sceneAnimal, sceneShape, sceneCount];
-    // Always include each type once if its data is present, then add 1–2 random extras.
+    // Always include each type once if its data is present.
     const baseline = generators.map(g => g()).filter(Boolean);
-    const extras = [pick(generators)(), pick(generators)()].filter(Boolean);
-    const chosen = shuffleArr([...baseline, ...extras]).slice(0, Math.min(6, baseline.length + 1));
-    // Stamp unique scene index so the sticker id is unique per play.
-    return chosen.map((s, i) => ({ ...s, id: `${s.id}-i${i}` }));
+    const chosen = shuffleArr(baseline).slice(0, STORY_SLOTS);
+    // Stamp the canonical sticker id by 1-based position so it matches the
+    // sticker-book roster, and keep an internal trace id for debugging.
+    return chosen.map((s, i) => ({ ...s, traceId: `${s.id}-i${i}`, id: `scene-${i + 1}` }));
   }
 
   function init() {

@@ -143,13 +143,20 @@ async function networkFirstNavigation(req) {
 async function staleWhileRevalidate(req) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(req, { ignoreSearch: true });
-  const network = fetch(req).then((res) => {
+  const networkPromise = fetch(req).then((res) => {
     if (res && res.ok && req.url.startsWith(self.location.origin)) {
       cache.put(req, res.clone()).catch(() => {});
     }
     return res;
-  }).catch(() => null);
-  return cached || network || fetch(req);
+  });
+  if (cached) {
+    // Kick off background refresh but don't block on it; swallow errors.
+    networkPromise.catch(() => {});
+    return cached;
+  }
+  // No cache: must await the network and surface any error so the browser
+  // can show a proper failure instead of receiving a null Response.
+  return networkPromise;
 }
 
 async function networkFirst(req) {
