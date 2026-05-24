@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#fff5dc" />
+  <title>Little Learners — Hoot Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Baloo+2:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/shared.css" />
+  <link rel="stylesheet" href="styles/learners.css" />
+</head>
+<body>
+  <div class="ll-bg" aria-hidden="true"></div>
+
+  <!-- First-run onboarding (hidden when profile exists) -->
+  <section id="onboard" class="ll-onboard" hidden>
+    <div id="onboardMascot" class="ll-onboard__mascot"></div>
+    <h1>Welcome to Little Learners!</h1>
+    <p>Hoot would love to know your name.</p>
+    <input id="onboardName" class="ll-onboard__input" type="text"
+           autocomplete="given-name" maxlength="20" placeholder="Your name" />
+    <p>How old are you?</p>
+    <div id="onboardAges" class="ll-onboard__ages"></div>
+    <button id="onboardSave" class="pp-btn pp-btn--primary pp-btn--big">Let's play! 🎉</button>
+  </section>
+
+  <!-- Continue last activity -->
+  <button id="continueBtn" class="ll-continue" hidden></button>
+
+  <!-- Main hub -->
+  <main class="ll-hub" id="hub">
+    <header class="ll-hub__greeting">
+      <div id="hubMascot" class="ll-hub__mascot" aria-hidden="true"></div>
+      <h1 class="ll-hub__title">Little Learners</h1>
+      <p id="helloLine" class="ll-hub__hello">Hi! What do you want to learn today?</p>
+    </header>
+
+    <section id="catGrid" class="ll-grid" aria-label="Categories"></section>
+  </main>
+
+  <!-- Bottom toolbar -->
+  <nav class="ll-toolbar" aria-label="Settings">
+    <div class="ll-toolbar__group">
+      <button id="ageBadge" class="ll-hub__age-badge" type="button" aria-label="Change age mode"></button>
+    </div>
+    <div class="ll-toolbar__group">
+      <button id="voiceMute"  class="pp-btn pp-btn--icon pp-btn--secondary" type="button" aria-label="Mute voice">🔊</button>
+      <button id="sfxMute"    class="pp-btn pp-btn--icon pp-btn--secondary" type="button" aria-label="Mute sounds">🔔</button>
+      <button id="stickerBook" class="pp-btn pp-btn--icon pp-btn--secondary" type="button" aria-label="Sticker book">🏆</button>
+      <button id="parentBtn"  class="pp-btn pp-btn--icon pp-btn--secondary" type="button" aria-label="Parents only">🔒</button>
+    </div>
+  </nav>
+
+  <!-- Shared suite scripts -->
+  <script src="shared/namespace.js"></script>
+  <script src="shared/progress.js"></script>
+  <script src="shared/theme.js"></script>
+  <script src="shared/mascot.js"></script>
+  <script src="shared/voice.js"></script>
+  <script src="shared/audio.js"></script>
+  <script src="shared/confetti.js"></script>
+  <script src="shared/ui.js"></script>
+
+  <!-- App scripts -->
+  <script src="js/data/categories.js"></script>
+  <script src="js/hub.js"></script>
+</body>
+</html>
