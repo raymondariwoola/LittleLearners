@@ -1,0 +1,139 @@
+/* =============================================================
+   Little Learners — category extras
+   Grids, tiles, letter cards, number tray, colour wheel, shape SVGs.
+   ============================================================= */
+
+/* Top-right mute toolbar on category pages */
+.ll-cat__tools {
+  position: fixed; top: 18px; right: 18px; z-index: 40;
+  display: flex; gap: 10px;
+}
+
+/* Stage transition between modes */
+.ll-stage--switching { opacity: 0; transform: translateY(8px); transition: opacity 0.2s ease, transform 0.2s ease; }
+.ll-stage { transition: opacity 0.3s ease, transform 0.3s var(--pp-spring); }
+
+/* ===== Generic grids ===== */
+.ll-letters-grid {
+  display: grid; gap: 14px; width: 100%; max-width: 920px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+.ll-numbers-grid {
+  display: grid; gap: 14px; width: 100%; max-width: 720px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+}
+.ll-shapes-grid {
+  display: grid; gap: 16px; width: 100%; max-width: 760px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.ll-tile {
+  border: none; cursor: pointer; min-height: 100px;
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow-md);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Fredoka', sans-serif; color: var(--pp-ink);
+  transition: transform 0.25s var(--pp-spring), box-shadow 0.25s ease;
+  padding: 10px;
+}
+.ll-tile:hover { transform: translateY(-3px); }
+.ll-tile:active { transform: scale(0.95); }
+.ll-tile__big { font-size: 56px; font-weight: 700; line-height: 1; }
+.ll-tile__sub { font-size: 18px; font-weight: 500; color: var(--pp-ink-soft); margin-top: 2px; }
+
+.ll-tile--letter { background: linear-gradient(135deg, #fff7e0, #ffe2b5); }
+.ll-tile--num    { background: linear-gradient(135deg, #e8f4ff, #d4ecd2); }
+.ll-tile--shape  svg { width: 100%; height: 100%; max-width: 110px; max-height: 110px; }
+.ll-tile--shape  { padding: 14px; min-height: 140px; }
+.ll-tile--shape.is-spinning svg { animation: ll-spin 0.9s var(--pp-spring); }
+@keyframes ll-spin {
+  0% { transform: rotate(0) scale(1); }
+  60% { transform: rotate(360deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Letter discovery card (full overlay) */
+.ll-letter-card {
+  position: fixed; inset: 0; z-index: 800;
+  background: rgba(20, 10, 40, 0.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; opacity: 0;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+.ll-letter-card.is-in { opacity: 1; }
+.ll-letter-card__big   { font-family: 'Fredoka', sans-serif; font-size: clamp(160px, 30vw, 280px); color: var(--pp-cream); line-height: 1; text-shadow: 0 12px 30px rgba(0,0,0,0.35); transform: scale(0.6); animation: ll-pop-in 0.5s var(--pp-spring) forwards; }
+.ll-letter-card.is-in .ll-letter-card__big { animation: ll-pop-in 0.5s var(--pp-spring) forwards; }
+.ll-letter-card__emoji { font-size: clamp(80px, 14vw, 140px); }
+.ll-letter-card__word  { font-family: 'Fredoka', sans-serif; font-size: clamp(28px, 4vw, 48px); color: var(--pp-cream); }
+@keyframes ll-pop-in {
+  0% { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* Number tray (bubbles fly in when discovering a number) */
+.ll-num-tray {
+  position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%) translateY(40px);
+  z-index: 600;
+  display: flex; flex-wrap: wrap; gap: 10px;
+  max-width: 80vw;
+  padding: 18px 22px;
+  background: rgba(255, 245, 220, 0.95);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  opacity: 0;
+  transition: transform 0.4s var(--pp-spring), opacity 0.3s ease;
+}
+.ll-num-tray.is-in { opacity: 1; transform: translateX(-50%) translateY(0); }
+.ll-num-bubble {
+  font-size: 44px;
+  animation: ll-bubble-in 0.4s var(--pp-spring);
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
+}
+@keyframes ll-bubble-in {
+  0% { transform: translateY(-30px) scale(0.4); opacity: 0; }
+  60% { transform: translateY(0) scale(1.15); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ===== Colour wheel ===== */
+.ll-color-wheel {
+  display: grid; gap: 18px; width: 100%; max-width: 600px;
+  grid-template-columns: repeat(4, 1fr);
+}
+.ll-color-blob {
+  width: 100%; aspect-ratio: 1; border: none; cursor: pointer;
+  border-radius: 50%;
+  box-shadow: var(--pp-shadow-md), inset 0 -10px 20px rgba(0,0,0,0.18), inset 0 10px 20px rgba(255,255,255,0.35);
+  transition: transform 0.25s var(--pp-spring);
+}
+.ll-color-blob:hover { transform: scale(1.06); }
+.ll-color-blob:active { transform: scale(0.92); }
+.ll-tint-flash {
+  position: fixed; inset: 0; z-index: 500; pointer-events: none;
+  opacity: 0; transition: opacity 0.35s ease;
+  mix-blend-mode: multiply;
+}
+.ll-tint-flash.is-in { opacity: 0.45; }
+
+/* ===== Choice swatches (used in colour practice) ===== */
+.ll-swatch {
+  width: 84%; aspect-ratio: 1; border-radius: 50%;
+  box-shadow: inset 0 -8px 16px rgba(0,0,0,0.2), inset 0 8px 16px rgba(255,255,255,0.35);
+}
+
+/* ===== Choice cells already styled in learners.css (.ll-choice) ===== */
+.ll-choice svg { width: 100%; height: 100%; max-width: 130px; max-height: 130px; }
+
+/* Mobile tweaks */
+@media (max-width: 600px) {
+  .ll-color-wheel { grid-template-columns: repeat(3, 1fr); }
+  .ll-tile { min-height: 84px; }
+  .ll-tile__big { font-size: 40px; }
+}
+
+/* Toddler mode bumps */
+:root[data-age-mode="toddler"] .ll-tile { min-height: 130px; }
+:root[data-age-mode="toddler"] .ll-tile__big { font-size: 68px; }
