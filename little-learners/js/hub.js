@@ -204,13 +204,14 @@
 
     $('#stickerBook').addEventListener('click', () => {
       PP.Audio.pageFlip();
-      PP.UI.toast('Sticker book coming soon');
-      // Phase 6 will route to pages/stickers.html
+      window.location.href = 'pages/stickers.html';
     });
 
     $('#parentBtn').addEventListener('click', async () => {
       const ok = await PP.UI.parentGate();
-      if (ok) PP.UI.toast('Parent zone coming in Phase 6');
+      if (!ok) return;
+      sessionStorage.setItem('pp_parent_gate', '1');
+      window.location.href = 'pages/parent.html';
     });
   }
 

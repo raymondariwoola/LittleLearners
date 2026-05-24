@@ -1,0 +1,184 @@
+/* =============================================================
+   book.css — sticker book, story mode, parent dashboard, settings
+   ============================================================= */
+
+/* ===== Sticker Book ===== */
+.ll-book-page {
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-lg);
+  padding: 22px;
+  max-width: 920px; margin: 14px auto;
+  min-height: 460px;
+  transform-origin: center left;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+.ll-book-page.is-flipping {
+  transform: rotateY(-12deg) scale(0.96);
+  opacity: 0.2;
+}
+.ll-book-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 32px; font-weight: 700;
+  color: var(--pp-ink); margin: 0 0 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ll-book-sub {
+  font-family: 'Baloo 2', sans-serif;
+  color: var(--pp-ink-soft); margin-bottom: 18px;
+}
+.ll-book-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.ll-book-sticker {
+  border: none; cursor: pointer;
+  background: linear-gradient(135deg, #fff7e0, #ffe2c4);
+  border-radius: var(--pp-radius);
+  padding: 16px 10px;
+  min-height: 130px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: var(--pp-shadow-md);
+  transition: transform 0.25s var(--pp-spring);
+  font-family: 'Fredoka', sans-serif;
+}
+.ll-book-sticker:hover { transform: translateY(-3px); }
+.ll-book-sticker.is-locked {
+  background: rgba(120, 120, 140, 0.12);
+  box-shadow: none;
+  color: var(--pp-ink-soft);
+  filter: grayscale(0.6);
+}
+.ll-book-sticker__big   { font-size: 48px; line-height: 1; }
+.ll-book-sticker__lock  { font-size: 36px; opacity: 0.6; }
+.ll-book-sticker__sub   { font-size: 13px; color: var(--pp-ink-soft); margin-top: 6px; text-align: center; }
+.ll-book-sticker__svg   { width: 72px; height: 72px; color: var(--pp-coral); }
+.ll-book-sticker__swatch{
+  width: 56px; height: 56px; border-radius: 50%;
+  box-shadow: inset 0 -6px 12px rgba(0,0,0,0.2), inset 0 6px 12px rgba(255,255,255,0.35);
+}
+.ll-book-cta {
+  display: flex; justify-content: center; margin-top: 22px;
+}
+.ll-book-nav {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 14px 0 28px;
+}
+.ll-book-count {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600; color: var(--pp-ink-soft);
+}
+.ll-book-tab {
+  min-width: 44px; padding: 6px 8px; font-size: 18px;
+}
+.ll-book-tab.is-active {
+  background: var(--pp-coral); color: white;
+}
+
+/* ===== Story Mode ===== */
+.ll-story-stage { gap: 18px; }
+.ll-story-card {
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-md);
+  padding: 18px 22px;
+  max-width: 760px; margin: 0 auto;
+}
+.ll-story-line { font-size: clamp(20px, 3vw, 28px); text-align: center; }
+.ll-story-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; margin: 0 4px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  font-size: 18px; color: var(--pp-ink-soft);
+}
+.ll-story-dot.is-active { background: var(--pp-sun); color: var(--pp-ink); transform: scale(1.1); }
+.ll-story-dot.is-done   { background: var(--pp-mint); color: var(--pp-ink); }
+
+/* ===== Parent dashboard ===== */
+.ll-parent {
+  max-width: 820px; margin: 16px auto 80px;
+  padding: 4px 18px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.ll-parent__hero h1 {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 32px; font-weight: 700; color: var(--pp-ink);
+  margin: 0;
+}
+.ll-parent__sub {
+  font-family: 'Baloo 2', sans-serif;
+  color: var(--pp-ink-soft); margin: 4px 0 0;
+}
+.ll-parent__cards {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.ll-parent__stat {
+  background: var(--pp-surface);
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow-sm);
+  padding: 14px 16px;
+}
+.ll-parent__stat-row {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Fredoka', sans-serif;
+}
+.ll-parent__stat-icon { font-size: 22px; }
+.ll-parent__stat-num {
+  margin-left: auto; color: var(--pp-ink-soft); font-weight: 600;
+}
+.ll-parent__bar {
+  margin-top: 8px; height: 10px; border-radius: 6px;
+  background: rgba(0,0,0,0.06); overflow: hidden;
+}
+.ll-parent__bar > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--pp-mint), var(--pp-sun));
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.ll-parent__row {
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+.ll-parent__details {
+  background: var(--pp-surface-2, rgba(255,255,255,0.5));
+  padding: 12px 16px;
+  border-radius: var(--pp-radius);
+  font-family: 'Baloo 2', sans-serif;
+  color: var(--pp-ink-soft);
+}
+.ll-parent__details summary {
+  font-weight: 700; color: var(--pp-ink); cursor: pointer;
+}
+
+/* ===== Settings modal ===== */
+.ll-settings { display: flex; flex-direction: column; gap: 18px; }
+.ll-settings__sec h3 {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px; margin: 0 0 8px; color: var(--pp-ink);
+}
+.ll-settings__row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+}
+.ll-settings__field {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Baloo 2', sans-serif; color: var(--pp-ink);
+  flex: 1; min-width: 220px;
+}
+.ll-settings__field input[type="range"] { flex: 1; }
+.ll-settings__field select {
+  flex: 1; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.15); font-family: inherit;
+  background: var(--pp-surface);
+}
+.pp-btn.is-active {
+  background: var(--pp-coral);
+  color: white;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ll-book-page { transition: none; }
+  .ll-book-page.is-flipping { transform: none; }
+}
