@@ -331,6 +331,11 @@
   window.PP.Voice = api;
   // Legacy global
   window.Voice = api;
+
+  // Stop all audio when the user navigates away from the page. Without this,
+  // WebAudio clips from voice-pack.js can continue playing briefly after the
+  // next page has already started loading, causing two voices to overlap.
+  window.addEventListener('pagehide', () => { try { cancelAll(); } catch (_) {} });
 })();
 
 /* PP.Phrases — toddler-friendly phrase bank.

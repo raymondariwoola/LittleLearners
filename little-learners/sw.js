@@ -12,7 +12,7 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.5.1';
+const CACHE_VERSION = 'v1.6.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 // Voice assets (pre-baked phrase clips and the manifest) live in a separate
@@ -39,6 +39,7 @@ const NEURAL_HOSTS = new Set([
 const PRECACHE = [
   './',
   './index.html',
+  './favicon.svg',
 
   './styles/shared.css',
   './styles/learners.css',
@@ -76,6 +77,7 @@ const PRECACHE = [
   './js/game-memory.js',
 
   './js/data/categories.js',
+  './js/data/age-config.js',
   './js/data/letters.js',
   './js/data/numbers.js',
   './js/data/colors.js',
@@ -217,9 +219,10 @@ async function staleWhileRevalidate(req) {
     networkPromise.catch(() => {});
     return cached;
   }
-  // No cache: must await the network and surface any error so the browser
-  // can show a proper failure instead of receiving a null Response.
-  return networkPromise;
+  // No cache: try network; on failure return a 404 so the browser gets a
+  // proper (non-throwing) response instead of an unhandled rejection that
+  // pollutes the DevTools console.
+  return networkPromise.catch(() => new Response('Not found', { status: 404, statusText: 'Not Found' }));
 }
 
 async function networkFirst(req) {

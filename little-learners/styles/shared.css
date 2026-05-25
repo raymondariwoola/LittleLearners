@@ -115,7 +115,7 @@ body::before {
 .pp-btn--secondary { background: var(--pp-surface-2); }
 .pp-btn--mint { background: linear-gradient(135deg, var(--pp-mint), #b8e8d2); color: var(--pp-ink); }
 .pp-btn--lavender { background: linear-gradient(135deg, var(--pp-lavender), #e2d0ff); color: var(--pp-ink); }
-.pp-btn--icon { width: 64px; height: 64px; min-height: 64px; padding: 0; border-radius: 50%; font-size: 26px; }
+.pp-btn--icon { width: 52px !important; height: 52px !important; min-height: 52px !important; padding: 0; border-radius: 16px; font-size: 22px; flex-direction: column; gap: 2px; }
 .pp-btn--big { min-height: 96px; padding: 18px 36px; font-size: 28px; border-radius: var(--pp-radius); }
 
 /* Tap pop micro-interaction */

@@ -40,9 +40,14 @@
     </svg>`;
   }
 
-  function discover(ctx) { startBoard(ctx, { pairs: 2, theme: 'animals', stickerId: 'meadow-4',  label: 'Pair up the animals!' }); }
-  function practice(ctx) { startBoard(ctx, { pairs: 3, theme: 'shapes',  stickerId: 'meadow-6',  label: 'Match the shapes!'    }); }
-  function quiz(ctx)     { startBoard(ctx, { pairs: 4, theme: 'food',    stickerId: 'meadow-8',  label: 'Find the food pairs!' }); }
+  function agePairs(ctx, base) {
+    // Toddlers start with fewer pairs so the board isn't overwhelming.
+    const offsets = { toddler: -1, preschool: 0, kindergarten: 0, reader: 1 };
+    return Math.max(2, base + (offsets[ctx.ageMode] || 0));
+  }
+  function discover(ctx) { startBoard(ctx, { pairs: agePairs(ctx, 2), theme: 'animals', stickerId: 'meadow-4',  label: 'Pair up the animals!' }); }
+  function practice(ctx) { startBoard(ctx, { pairs: agePairs(ctx, 3), theme: 'shapes',  stickerId: 'meadow-6',  label: 'Match the shapes!'    }); }
+  function quiz(ctx)     { startBoard(ctx, { pairs: agePairs(ctx, 4), theme: 'food',    stickerId: 'meadow-8',  label: 'Find the food pairs!' }); }
 
   function startBoard(ctx, cfg) {
     // Adaptive bump: one extra pair when the child is on a roll.

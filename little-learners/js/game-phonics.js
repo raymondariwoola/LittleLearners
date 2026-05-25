@@ -13,7 +13,7 @@
 
     const grid = document.createElement('div');
     grid.className = 'll-words-grid';
-    WORDS.forEach(w => {
+    ctx.ageItems(WORDS, 'phonics').forEach(w => {
       const t = document.createElement('button');
       t.type = 'button';
       t.className = 'll-tile ll-tile--word';
@@ -41,8 +41,8 @@
   function quiz(ctx)     { runSpell(ctx, true); }
 
   function runSpell(ctx, isQuiz) {
-    const total = isQuiz ? 6 : 4;
-    const pool = WORDS.slice();
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
+    const pool = ctx.ageItems(WORDS, 'phonics');
     let i = 0, starsTotal = 0;
 
     const next = () => {

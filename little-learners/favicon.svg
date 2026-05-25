@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Warm cream background circle -->
+  <circle cx="32" cy="32" r="30" fill="#fff5dc" stroke="#ff8c66" stroke-width="2.5"/>
+  <!-- Body -->
+  <ellipse cx="32" cy="42" rx="14" ry="13" fill="#6b4f2e"/>
+  <!-- Head -->
+  <circle cx="32" cy="24" r="13" fill="#8b6840"/>
+  <!-- Ear tufts -->
+  <path d="M22 13 L18 5 L26 11 Z" fill="#6b4f2e"/>
+  <path d="M42 13 L46 5 L38 11 Z" fill="#6b4f2e"/>
+  <!-- Face: left eye white -->
+  <circle cx="27" cy="23" r="5" fill="#fff5dc"/>
+  <!-- Face: right eye white -->
+  <circle cx="37" cy="23" r="5" fill="#fff5dc"/>
+  <!-- Pupils -->
+  <circle cx="27" cy="23" r="3" fill="#2a1437"/>
+  <circle cx="37" cy="23" r="3" fill="#2a1437"/>
+  <!-- Eye shine -->
+  <circle cx="28.5" cy="21.5" r="1" fill="white"/>
+  <circle cx="38.5" cy="21.5" r="1" fill="white"/>
+  <!-- Beak -->
+  <path d="M32 28 L29 32 L35 32 Z" fill="#ff8c66"/>
+  <!-- Wing hints -->
+  <path d="M18 40 Q20 35 22 42" stroke="#6b4f2e" stroke-width="2" fill="none"/>
+  <path d="M46 40 Q44 35 42 42" stroke="#6b4f2e" stroke-width="2" fill="none"/>
+</svg>

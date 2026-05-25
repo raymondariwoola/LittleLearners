@@ -199,12 +199,13 @@
   function quiz(ctx)     { runRounds(ctx, true); }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(ROLES, 'family');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0, starsTotal = 0;
 
     // Preload photo blobs once so choice render is sync-ish.
     const photoMap = new Map();
-    Promise.all(ROLES.map(r => getPhoto(r.id).then(b => b && photoMap.set(r.id, objectUrlFor(r.id, b))).catch(()=>{})))
+    Promise.all(pool.map(r => getPhoto(r.id).then(b => b && photoMap.set(r.id, objectUrlFor(r.id, b))).catch(()=>{})))
       .then(start);
 
     function start() {
@@ -215,8 +216,8 @@
           if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Family Quiz');
           return;
         }
-        const target = ROLES[Math.floor(Math.random() * ROLES.length)];
-        const distractors = pickN(ROLES, ctx.choiceCount() - 1, target);
+        const target = pool[Math.floor(Math.random() * pool.length)];
+        const distractors = pickN(pool, ctx.choiceCount() - 1, target);
         const items = shuffle([target, ...distractors]);
         const correctIdx = items.indexOf(target);
 

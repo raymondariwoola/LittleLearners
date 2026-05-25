@@ -22,7 +22,7 @@
 
     const grid = document.createElement('div');
     grid.className = 'll-shapes-grid';
-    SHAPES.forEach((s, i) => {
+    ctx.ageItems(SHAPES, 'shapes').forEach((s, i) => {
       const t = document.createElement('button');
       t.type = 'button';
       t.className = 'll-tile ll-tile--shape';
@@ -47,7 +47,8 @@
   function quiz(ctx)     { runRounds(ctx, true); }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(SHAPES, 'shapes');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0; let starsTotal = 0;
     const next = () => {
       if (i >= total) {
@@ -56,8 +57,8 @@
         if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Shape Quiz');
         return;
       }
-      const target = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-      const distractors = pickN(SHAPES, ctx.choiceCount() - 1, target);
+      const target = pool[Math.floor(Math.random() * pool.length)];
+      const distractors = pickN(pool, ctx.choiceCount() - 1, target);
       const items = shuffle([target, ...distractors]);
       const correctIdx = items.indexOf(target);
 

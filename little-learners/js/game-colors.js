@@ -16,7 +16,7 @@
 
     const wheel = document.createElement('div');
     wheel.className = 'll-color-wheel';
-    COLORS.forEach(c => {
+    ctx.ageItems(COLORS, 'colors').forEach(c => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'll-color-blob';
@@ -81,7 +81,8 @@
   function quiz(ctx)     { runRounds(ctx, true); }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(COLORS, 'colors');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0; let starsTotal = 0;
 
     const next = () => {
@@ -91,8 +92,8 @@
         if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Colour Quiz');
         return;
       }
-      const target = COLORS[Math.floor(Math.random() * COLORS.length)];
-      const distractors = pickN(COLORS, ctx.choiceCount() - 1, target);
+      const target = pool[Math.floor(Math.random() * pool.length)];
+      const distractors = pickN(pool, ctx.choiceCount() - 1, target);
       const items = shuffle([target, ...distractors]);
       const correctIdx = items.indexOf(target);
 

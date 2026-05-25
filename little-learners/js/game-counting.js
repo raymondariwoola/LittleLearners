@@ -5,11 +5,7 @@
   function pickN(arr, n, exclude) {
     return shuffle(exclude ? arr.filter(x => x !== exclude) : arr.slice()).slice(0, n);
   }
-  function poolFor(ctx) {
-    return (ctx.ageMode === 'toddler' || ctx.ageMode === 'preschool')
-      ? NUMS.filter(n => n.n <= 10)
-      : NUMS;
-  }
+  function poolFor(ctx) { return ctx.ageItems(NUMS, 'counting'); }
 
   // ===== Discover: a tray of N items. Tap each in order to count out loud. =====
   function discover(ctx) {
@@ -94,7 +90,7 @@
 
   function runRounds(ctx, isQuiz) {
     const pool = poolFor(ctx);
-    const total = isQuiz ? 8 : 5;
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0, starsTotal = 0;
     const next = () => {
       if (i >= total) {

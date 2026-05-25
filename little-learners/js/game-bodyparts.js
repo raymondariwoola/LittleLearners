@@ -87,7 +87,8 @@
   function quiz(ctx)     { runRounds(ctx, true); }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(PARTS, 'bodyparts');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0, starsTotal = 0;
     const next = () => {
       if (i >= total) {
@@ -96,8 +97,8 @@
         if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Body Quiz');
         return;
       }
-      const target = PARTS[Math.floor(Math.random() * PARTS.length)];
-      const distractors = pickN(PARTS, ctx.choiceCount() - 1, target);
+      const target = pool[Math.floor(Math.random() * pool.length)];
+      const distractors = pickN(pool, ctx.choiceCount() - 1, target);
       const items = shuffle([target, ...distractors]);
       const correctIdx = items.indexOf(target);
 

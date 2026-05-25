@@ -115,17 +115,27 @@
 }
 .ll-mission__title { font-family: 'Fredoka', sans-serif; font-size: 20px; color: var(--pp-ink); margin: 0 0 4px; }
 .ll-mission__sub   { font-size: 14px; color: var(--pp-ink-soft); margin: 0 0 10px; }
-.ll-mission__dots  { display: flex; gap: 10px; flex-wrap: wrap; }
+.ll-mission__dots  { display: flex; gap: 8px; flex-wrap: wrap; }
 .ll-mission__dot   {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 10px; border-radius: 999px;
-  background: #fef2e0; color: var(--pp-ink);
-  font-size: 13px; font-weight: 600;
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--pp-surface-2);
+  color: var(--pp-ink);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  font-size: 13px; font-weight: 700;
+  box-shadow: var(--pp-shadow-sm);
+}
+[data-theme="night"] .ll-mission__dot {
+  border-color: rgba(255,255,255,0.12);
 }
 .ll-mission__dot[data-done="true"] {
-  background: var(--pp-mint, #b6e3c8); text-decoration: line-through;
+  background: var(--pp-mint);
+  color: #1a3a28;
+  border-color: transparent;
+  text-decoration: line-through;
+  opacity: 0.9;
 }
-.ll-mission__dot .em { font-size: 16px; }
+.ll-mission__dot .em { font-size: 15px; line-height: 1; }
 .ll-mission__cta { white-space: nowrap; }
 .ll-mission.is-done {
   background: linear-gradient(135deg, var(--pp-mint), var(--pp-sun));
@@ -138,13 +148,67 @@
 /* Toolbar (hub bottom strip) */
 .ll-toolbar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-  padding: 14px 18px;
+  padding: 10px 16px 14px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: linear-gradient(to top, var(--pp-surface) 60%, transparent);
+  /* Soft fade so content beneath scrolls under gracefully */
+  background: linear-gradient(to top, var(--pp-surface) 65%, rgba(255,245,220,0));
   pointer-events: none;
 }
+[data-theme="night"] .ll-toolbar {
+  background: linear-gradient(to top, var(--pp-bg-1) 65%, rgba(44,32,70,0));
+}
 .ll-toolbar > * { pointer-events: auto; }
-.ll-toolbar__group { display: flex; gap: 10px; align-items: center; }
+.ll-toolbar__group { display: flex; gap: 6px; align-items: center; }
+
+/* Right-hand toolbar pill container — groups the icon buttons visually */
+.ll-toolbar__group:last-child {
+  background: var(--pp-surface);
+  border-radius: 20px;
+  padding: 6px 8px;
+  box-shadow: var(--pp-shadow-md);
+  gap: 4px;
+}
+
+/* Toolbar icon buttons — labeled, square, modern */
+.ll-toolbar .pp-btn--icon {
+  width: 52px !important; height: 52px !important; min-height: 52px !important;
+  border-radius: 14px;
+  font-size: 20px;
+  flex-direction: column; gap: 1px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pp-ink-soft);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s var(--pp-spring);
+}
+.ll-toolbar .pp-btn--icon:hover {
+  background: var(--pp-surface-2);
+  color: var(--pp-ink);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+.ll-toolbar .pp-btn--icon:active {
+  transform: scale(0.93);
+  box-shadow: none;
+}
+/* Small label text below each icon */
+.ll-toolbar .pp-btn--icon .tb-label {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+/* Age badge retains its pill look */
+.ll-hub__age-badge {
+  background: var(--pp-surface);
+  border-radius: 20px;
+  padding: 8px 14px;
+  box-shadow: var(--pp-shadow-md);
+  gap: 6px;
+  font-size: 15px;
+}
 
 /* Continue button */
 .ll-continue {

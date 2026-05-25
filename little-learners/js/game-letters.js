@@ -20,7 +20,7 @@
 
     const grid = document.createElement('div');
     grid.className = 'll-letters-grid';
-    LETTERS.forEach(l => {
+    ctx.ageItems(LETTERS, 'letters').forEach(l => {
       const tile = document.createElement('button');
       tile.type = 'button';
       tile.className = 'll-tile ll-tile--letter';
@@ -73,7 +73,8 @@
   }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(LETTERS, 'letters');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0; let starsTotal = 0;
     const used = new Set();
 
@@ -88,9 +89,9 @@
         if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Letter Quiz');
         return;
       }
-      const target = pickUnused(LETTERS, used);
+      const target = pickUnused(pool, used);
       used.add(target.letter);
-      const distractors = pickN(LETTERS, ctx.choiceCount() - 1, target);
+      const distractors = pickN(pool, ctx.choiceCount() - 1, target);
       const items = shuffle([target, ...distractors]);
       const correctIdx = items.indexOf(target);
 

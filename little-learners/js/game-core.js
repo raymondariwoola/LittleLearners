@@ -51,8 +51,19 @@
     document.documentElement.setAttribute('data-age-mode', ageMode);
     document.documentElement.setAttribute('data-category', opts.catId);
 
+    // Available modes for this age — PP.AgeConfig controls which tabs show.
+    const ageModes = (window.PP && PP.AgeConfig)
+      ? PP.AgeConfig.availableModes(ageMode)
+      : ['discover', 'practice', 'quiz'];
+    // Only show tabs that the game actually implements.
+    const visibleModes = ageModes.filter(m => opts.modes && opts.modes[m]);
+
     // ===== Chrome =====
     const root = $('#cat');
+    const modeTabs = visibleModes.map(m => {
+      const labels = { discover: 'Discover', practice: 'Practice', quiz: 'Quiz' };
+      return `<button class="ll-cat__mode" data-mode="${m}" type="button" role="tab">${labels[m] || m}</button>`;
+    }).join('');
     root.innerHTML = `
       <div class="ll-cat__bar">
         <button id="catBack" class="ll-cat__back" type="button" aria-label="Back to home">←</button>
@@ -61,9 +72,7 @@
           <span>${opts.label}</span>
         </div>
         <div class="ll-cat__modes" role="tablist" aria-label="Activity mode">
-          <button class="ll-cat__mode" data-mode="discover" type="button" role="tab">Discover</button>
-          <button class="ll-cat__mode" data-mode="practice" type="button" role="tab">Practice</button>
-          <button class="ll-cat__mode" data-mode="quiz"     type="button" role="tab">Quiz</button>
+          ${modeTabs}
         </div>
       </div>
       <div id="stage" class="ll-stage" aria-live="polite"></div>`;
@@ -120,6 +129,15 @@
         // Cap at 5 so the grid never feels overwhelming.
         return Math.min(5, base + (adaptive.choiceBoost || 0));
       },
+      // Filter an array to the age-appropriate subset for this category.
+      // Falls back to the full array when PP.AgeConfig is not loaded.
+      ageItems: (arr, catId) => (window.PP && PP.AgeConfig)
+        ? PP.AgeConfig.filter(arr, catId || opts.catId, ageMode)
+        : arr,
+      // Age-appropriate round count for practice/quiz.
+      ageRounds: (type) => (window.PP && PP.AgeConfig)
+        ? PP.AgeConfig.rounds(ageMode, type)
+        : (type === 'quiz' ? 8 : 5),
       say,
       cheer,
       askChoice,
@@ -344,8 +362,11 @@
       }, 220);
     }
 
-    // Boot default mode
-    const defaultMode = opts.defaultMode || 'discover';
+    // Boot default mode — if the preferred default isn't available for this
+    // age mode, fall back to the first visible mode so the page never starts blank.
+    const defaultMode = (visibleModes.includes(opts.defaultMode || 'discover'))
+      ? (opts.defaultMode || 'discover')
+      : (visibleModes[0] || 'discover');
     modeBtns.find(b => b.dataset.mode === defaultMode)?.classList.add('is-active');
     try { opts.modes[defaultMode](ctx); } catch (err) { console.error('[PP.Game] boot crashed', err); }
 

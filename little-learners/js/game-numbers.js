@@ -1,11 +1,7 @@
 /* Numbers — Discover / Practice / Quiz */
 (function () {
   const ALL = PP.Numbers;
-  function poolFor(ctx) {
-    return (ctx.ageMode === 'toddler' || ctx.ageMode === 'preschool')
-      ? ALL.filter(n => n.n <= 10)
-      : ALL;
-  }
+  function poolFor(ctx) { return ctx.ageItems(ALL, 'numbers'); }
   function shuffle(a) { return a.slice().sort(() => Math.random() - 0.5); }
   function pickN(arr, n, exclude) {
     const pool = exclude ? arr.filter(x => x !== exclude) : arr.slice();
@@ -75,7 +71,7 @@
 
   function runRounds(ctx, isQuiz) {
     const pool = poolFor(ctx);
-    const total = isQuiz ? 8 : 5;
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0; let starsTotal = 0;
     const next = () => {
       if (i >= total) {

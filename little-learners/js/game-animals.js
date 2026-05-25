@@ -19,7 +19,7 @@
 
     const grid = document.createElement('div');
     grid.className = 'll-animals-grid';
-    ANIMALS.forEach(a => {
+    ctx.ageItems(ANIMALS, 'animals').forEach(a => {
       const t = document.createElement('button');
       t.type = 'button';
       t.className = 'll-tile ll-tile--animal';
@@ -48,7 +48,8 @@
   function quiz(ctx)     { runRounds(ctx, true); }
 
   function runRounds(ctx, isQuiz) {
-    const total = isQuiz ? 8 : 5;
+    const pool = ctx.ageItems(ANIMALS, 'animals');
+    const total = ctx.ageRounds(isQuiz ? 'quiz' : 'practice');
     let i = 0, starsTotal = 0;
     const next = () => {
       if (i >= total) {
@@ -57,8 +58,8 @@
         if (isQuiz && stars >= 2) ctx.awardSticker('quiz-' + Date.now(), 'Animal Quiz');
         return;
       }
-      const target = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-      const distractors = pickN(ANIMALS, ctx.choiceCount() - 1, target);
+      const target = pool[Math.floor(Math.random() * pool.length)];
+      const distractors = pickN(pool, ctx.choiceCount() - 1, target);
       const items = shuffle([target, ...distractors]);
       const correctIdx = items.indexOf(target);
       const usePrompt = isQuiz && Math.random() < 0.5

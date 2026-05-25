@@ -84,10 +84,19 @@
   function greet() {
     const p = PP.Progress.profile();
     const last = learners.get('lastSeen', 0);
-    learners.set('lastSeen', Date.now());
+    const now = Date.now();
+    learners.set('lastSeen', now);
 
     const greeting = PP.Phrases.greeting(p.name);
     $('#helloLine').textContent = greeting;
+
+    // Only speak the greeting if the user hasn't been on this screen in the
+    // last 5 minutes. Returning from a game after 30 seconds should not
+    // replay "Hi Arianna!" every single time.
+    const GREET_COOLDOWN_MS = 5 * 60 * 1000;
+    const shouldSpeak = !last || (now - last) > GREET_COOLDOWN_MS;
+    if (!shouldSpeak) return;
+
     // Speak after a tick so the page is settled
     setTimeout(() => {
       PP.Mascot.speak(mascotEl, true);
@@ -204,8 +213,12 @@
 
   // ===== Category grid =====
   function renderGrid() {
+    const ageMode = PP.Progress.profile().ageMode || 'toddler';
+    const visibleCats = PP.Categories.filter(cat =>
+      !window.PP || !PP.AgeConfig || PP.AgeConfig.isCategoryVisible(cat.id, ageMode)
+    );
     const grid = $('#catGrid');
-    grid.replaceChildren(...PP.Categories.map(cat => {
+    grid.replaceChildren(...visibleCats.map(cat => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'll-card';
@@ -228,10 +241,17 @@
     }));
   }
 
-  // Sticker targets are derived from the live data arrays so they always
-  // match whatever each category currently rosters. Story stays fixed
-  // because the sticker book renders a fixed 5-slot roster.
+  // Sticker targets are derived from the age-appropriate item count so the
+  // ring fills to 100% once the child has seen everything for their tier.
   function stickerTargetFor(id) {
+    const ageMode = PP.Progress.profile().ageMode || 'toddler';
+    if (window.PP && PP.AgeConfig) {
+      const n = (PP.AgeConfig.subsets[id] || {})[ageMode];
+      if (n != null && n > 0) return n;
+      if (n === null) {
+        // "show all" — fall through to raw length below
+      } else if (n === 0) return 1; // hidden category, shouldn't appear
+    }
     const len = (arr) => Array.isArray(arr) ? arr.length : 0;
     const sizes = {
       letters:   len(PP.Letters)   || 26,
@@ -305,6 +325,8 @@
         PP.Progress.setProfile({ ageMode: m.id });
         applyAgeModeAttr();
         renderAgeBadge();
+        renderGrid();
+        renderMission();
         modal.close();
         PP.UI.toast(`${m.label} mode on`, { kind: 'good' });
       });
@@ -318,19 +340,29 @@
     });
   }
 
+  function _voiceIcon(muted) { return `<span aria-hidden="true">${muted ? '🔇' : '🔊'}</span><span class="tb-label">Voice</span>`; }
+  function _sfxIcon(muted)   { return `<span aria-hidden="true">${muted ? '🔕' : '🔔'}</span><span class="tb-label">Sound</span>`; }
+
   function wireToolbar() {
-    $('#voiceMute').addEventListener('click', (e) => {
+    const voiceMuteEl = $('#voiceMute');
+    const sfxMuteEl   = $('#sfxMute');
+
+    voiceMuteEl.innerHTML = _voiceIcon(PP.Voice.isMuted());
+    sfxMuteEl.innerHTML   = _sfxIcon(PP.Audio.isMuted());
+    $('#settingsBtn').innerHTML = `<span aria-hidden="true">⚙️</span><span class="tb-label">Settings</span>`;
+    $('#stickerBook').innerHTML = `<span aria-hidden="true">🏆</span><span class="tb-label">Stickers</span>`;
+    $('#parentBtn').innerHTML   = `<span aria-hidden="true">🔒</span><span class="tb-label">Parents</span>`;
+
+    voiceMuteEl.addEventListener('click', () => {
       const muted = PP.Voice.toggleMute();
-      e.currentTarget.textContent = muted ? '🔇' : '🔊';
+      voiceMuteEl.innerHTML = _voiceIcon(muted);
       PP.UI.toast(muted ? 'Voice off' : 'Voice on');
     });
-    $('#sfxMute').addEventListener('click', (e) => {
+    sfxMuteEl.addEventListener('click', () => {
       const muted = PP.Audio.toggleMute();
-      e.currentTarget.textContent = muted ? '🔕' : '🔔';
+      sfxMuteEl.innerHTML = _sfxIcon(muted);
       PP.UI.toast(muted ? 'Sounds off' : 'Sounds on');
     });
-    $('#voiceMute').textContent = PP.Voice.isMuted() ? '🔇' : '🔊';
-    $('#sfxMute').textContent = PP.Audio.isMuted() ? '🔕' : '🔔';
 
     $('#stickerBook').addEventListener('click', () => {
       PP.Audio.pageFlip();
