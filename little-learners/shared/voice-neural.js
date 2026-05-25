@@ -60,6 +60,9 @@
     cache: new Map(),     // normalized text -> Blob URL
     progress: { phase: 'idle', loaded: 0, total: 0, percent: 0, label: '' },
   };
+  // Incremented whenever a voice-switch invalidates an in-flight load so the
+  // old loadPiper() promise won't commit its result to state.
+  let loadGeneration = 0;
 
   const listeners = new Set();
   function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
@@ -121,8 +124,28 @@
   function configure(cfg) {
     const next = { ...readConfig(), ...(cfg || {}) };
     if (!VALID_VOICE_IDS.has(next.voice)) next.voice = PIPER_DEFAULT_VOICE;
+    const prevVoice = state.config && state.config.voice;
+    const voiceChanged = !!prevVoice && prevVoice !== next.voice;
     state.config = next;
     saveS({ neuralVoice: next.voice });
+
+    if (voiceChanged && (state.ready || !!state.loading)) {
+      // Voice switched while engine is active. Invalidate the current load
+      // (via generation counter so any in-flight loadPiper won't commit its
+      // result), wipe in-memory state, and reload with the new voice.
+      // We intentionally do NOT call disable() so neuralEnabled stays true.
+      loadGeneration++;
+      state.ready = false;
+      state.loading = null;
+      state.engine = null;
+      state.cache.forEach(url => { try { URL.revokeObjectURL(url); } catch (_) {} });
+      state.cache.clear();
+      setProgress({ phase: 'idle', label: '', loaded: 0, total: 0, percent: 0 });
+      notify();
+      enable().catch(() => {});
+      return;
+    }
+
     notify();
   }
 
@@ -137,6 +160,16 @@
     //   voices() -> Promise<Voice[]>
     // Repo: https://github.com/diffusionstudio/vits-web
     const mod = await import(/* @vite-ignore */ PIPER_ESM);
+    // onnxruntime-web defaults to numThreads=10 but SharedArrayBuffer requires
+    // crossOriginIsolated which may not be set in all host contexts. Force
+    // single-threaded mode to silence the warning and keep behaviour consistent.
+    // window.ort is exposed by the onnxruntime UMD bundle loaded by vits-web.
+    if (!window.crossOriginIsolated) {
+      try {
+        const ort = window.ort;
+        if (ort && ort.env && ort.env.wasm) ort.env.wasm.numThreads = 1;
+      } catch (_) {}
+    }
     const predict  = mod.predict  || (mod.default && mod.default.predict);
     const download = mod.download || (mod.default && mod.default.download);
     if (!predict)  throw new Error('vits-web: predict export not found');
@@ -188,10 +221,12 @@
     const cfg = readConfig();
     state.config = cfg;
     state.error = null;
+    const gen = ++loadGeneration;
 
     state.loading = (async () => {
       try {
         const engine = await loadPiper(cfg);
+        if (gen !== loadGeneration) return false; // voice changed mid-load; discard
         state.engine = engine;
         state.ready = true;
         // Persist BOTH flags so subsequent page loads auto-warm Piper without
@@ -201,12 +236,13 @@
         setProgress({ phase: 'ready', label: 'Voice ready', percent: 100 });
         return true;
       } catch (err) {
+        if (gen !== loadGeneration) return false; // voice changed mid-load; discard
         state.error = err;
         state.ready = false;
         setProgress({ phase: 'error', label: String(err.message || err) });
         return false;
       } finally {
-        state.loading = null;
+        if (gen === loadGeneration) state.loading = null;
         notify();
       }
     })();

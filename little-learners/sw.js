@@ -172,11 +172,16 @@ self.addEventListener('message', (event) => {
     return;
   }
   // Settings -> "Remove voice" sends this to wipe the cached neural model.
-  // We reply via the source port so the UI can confirm + repaint.
+  // voice-neural.js passes a MessageChannel port so it can listen for the
+  // reply on ch.port1; we must reply on event.ports[0] (= ch.port2), not
+  // event.source, which goes to the window and is never received by the port.
   if (event.data && event.data.type === 'PURGE_NEURAL_CACHE') {
     event.waitUntil((async () => {
       const ok = await caches.delete(NEURAL_CACHE);
-      if (event.source && event.source.postMessage) {
+      const port = event.ports && event.ports[0];
+      if (port) {
+        try { port.postMessage({ type: 'PURGE_NEURAL_CACHE_DONE', ok }); } catch (_) {}
+      } else if (event.source && event.source.postMessage) {
         try { event.source.postMessage({ type: 'PURGE_NEURAL_CACHE_DONE', ok }); } catch (_) {}
       }
     })());

@@ -456,13 +456,22 @@
       }
     });
     testBtn.addEventListener('click', async () => {
+      if (testBtn.disabled) return;
       const name = (PP.Progress.profile().name || 'friend');
-      // Speak a sentence that includes the child's name so the difference
-      // from the pre-baked pack is obvious.
-      await PP.VoiceNeural.speak(`Hi ${name}! It is wonderful to talk with you today.`, {
-        rate: PP.Voice.getRate ? PP.Voice.getRate() : 1,
-        volume: PP.Voice.getVolume ? PP.Voice.getVolume() : 1,
-      });
+      // First synthesis can take 15–60 s in single-threaded WASM mode.
+      // Disable the button and show feedback so the user knows it's working.
+      testBtn.disabled = true;
+      const origText = testBtn.textContent;
+      testBtn.textContent = '⏳ Generating…';
+      try {
+        await PP.VoiceNeural.speak(`Hi ${name}! It is wonderful to talk with you today.`, {
+          rate: PP.Voice.getRate ? PP.Voice.getRate() : 1,
+          volume: PP.Voice.getVolume ? PP.Voice.getVolume() : 1,
+        });
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = origText;
+      }
     });
 
     // Live progress updates from the engine.
