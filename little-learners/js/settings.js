@@ -50,6 +50,7 @@
       <section class="ll-set">
         <div id="secProfile"  class="ll-set__card"></div>
         <div id="secVoice"    class="ll-set__card"></div>
+        <div id="secNeural"   class="ll-set__card"></div>
         <div id="secSound"    class="ll-set__card"></div>
         <div id="secTheme"    class="ll-set__card"></div>
         <div id="secMotion"   class="ll-set__card"></div>
@@ -67,6 +68,7 @@
 
     renderProfileSection();
     renderVoiceSection();
+    renderNeuralSection();
     renderSoundSection();
     renderThemeSection();
     renderMotionSection();
@@ -241,6 +243,162 @@
       bindSlider('#vVol',   '#vVolOut',   PP.Voice.getVolume ? PP.Voice.getVolume() : 1,       v => Math.round(v * 100) + '%',  v => PP.Voice.setVolume(v));
       renderVoiceList(voices, PP.Voice.getSelected && PP.Voice.getSelected());
     }
+  }
+
+  // ----- Neural voice (Tier 2) -----
+  // This card only renders meaningfully when PP.VoiceNeural has loaded
+  // and the device passes capability(). Otherwise we show a polite note so
+  // parents understand why the option isn't available.
+  function renderNeuralSection() {
+    const wrap = $('#secNeural');
+    if (!wrap) return;
+    const body = sectionShell(wrap, '\u2728 Hoot Plus (neural voice)',
+      'Optional. Lets Hoot speak <strong>any</strong> word \u2014 names, stories, brand-new sentences \u2014 in his own voice, with no internet after the first download.');
+
+    if (!window.PP || !PP.VoiceNeural) {
+      body.innerHTML = `<p class="ll-set__hint">Neural voice module not loaded.</p>`;
+      return;
+    }
+
+    const cap = PP.VoiceNeural.capability();
+    const snap = PP.VoiceNeural.snapshot();
+    const s = PP.Progress.settings();
+    const enabled = s.neuralEnabled === true;
+    const engine = s.neuralEngine || cap.recommendedEngine || 'kokoro';
+
+    if (!cap.capable) {
+      body.innerHTML = `<p class="ll-set__hint">This device can't run an on-device voice model (${escHtml(cap.reason)}). Hoot Premium and the device voice still work great.</p>`;
+      return;
+    }
+
+    body.innerHTML = `
+      <div id="nEngineList" class="ll-set__pills" role="radiogroup" aria-label="Engine"></div>
+
+      <div class="ll-set__row" style="margin-top:8px;">
+        <button id="nEnable"  type="button" class="pp-btn pp-btn--primary"></button>
+        <button id="nDisable" type="button" class="pp-btn pp-btn--secondary" hidden>Turn off</button>
+        <button id="nTest"    type="button" class="pp-btn pp-btn--mint" hidden>\u25B6 Hear it</button>
+      </div>
+
+      <div id="nProgress" class="ll-neural__progress" hidden>
+        <div class="ll-neural__bar"><div id="nBar" class="ll-neural__fill"></div></div>
+        <p id="nLabel" class="ll-set__hint"></p>
+      </div>
+
+      <p class="ll-set__hint" id="nStatus" aria-live="polite"></p>
+
+      <details class="ll-set__details">
+        <summary>What gets downloaded?</summary>
+        <div class="ll-set__detailsBody">
+          <p class="ll-set__hint"><strong>Kokoro</strong>: one-time ~80&nbsp;MB voice model from Hugging Face. Higher quality. Best with WebGPU (most modern laptops + desktops).</p>
+          <p class="ll-set__hint"><strong>Piper</strong>: one-time ~20&nbsp;MB voice. Smaller download, runs on phones. Quality is good but not as warm as Kokoro.</p>
+          <p class="ll-set__hint">Stored in your browser's cache. Nothing leaves the device after that. Clearing site data removes it.</p>
+        </div>
+      </details>
+    `;
+
+    // ----- engine picker -----
+    const engineOpts = [
+      { id: 'kokoro', icon: '\uD83C\uDF1F', label: 'Kokoro', sub: cap.webgpu ? 'best quality (~80 MB)' : 'best quality, slower without WebGPU' },
+      { id: 'piper',  icon: '\uD83C\uDFB6', label: 'Piper',  sub: 'lightweight (~20 MB), good on phones' },
+    ];
+    const eList = $('#nEngineList');
+    engineOpts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.role = 'radio';
+      const active = o.id === engine;
+      b.className = 'll-set__pill' + (active ? ' is-active' : '');
+      b.setAttribute('aria-checked', String(active));
+      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong><em>${o.sub}</em>`;
+      b.addEventListener('click', () => {
+        eList.querySelectorAll('.ll-set__pill').forEach(x => {
+          x.classList.remove('is-active');
+          x.setAttribute('aria-checked', 'false');
+        });
+        b.classList.add('is-active');
+        b.setAttribute('aria-checked', 'true');
+        PP.VoiceNeural.configure({ engine: o.id });
+        updateButtons();
+      });
+      eList.appendChild(b);
+    });
+
+    // ----- enable / disable / test -----
+    const enableBtn  = $('#nEnable');
+    const disableBtn = $('#nDisable');
+    const testBtn    = $('#nTest');
+    const status     = $('#nStatus');
+    const prog       = $('#nProgress');
+    const bar        = $('#nBar');
+    const label      = $('#nLabel');
+
+    function paintFromSnapshot() {
+      const sn = PP.VoiceNeural.snapshot();
+      const ready = sn.ready;
+      const loading = sn.loading;
+      const err = sn.error;
+      enableBtn.disabled = loading;
+      enableBtn.textContent = ready
+        ? '\u2713 Hoot Plus on'
+        : (loading ? 'Downloading\u2026' : '\u2B07 Turn on Hoot Plus');
+      enableBtn.hidden = ready;
+      disableBtn.hidden = !ready;
+      testBtn.hidden = !ready;
+
+      if (loading) {
+        prog.hidden = false;
+        bar.style.width = (sn.progress.percent || 0) + '%';
+        label.textContent = sn.progress.label || 'Working\u2026';
+      } else if (ready) {
+        prog.hidden = true;
+      } else {
+        prog.hidden = !err;
+        if (err) {
+          bar.style.width = '0%';
+          label.textContent = err;
+        }
+      }
+
+      if (ready) {
+        const v = sn.voice ? ` Voice: <strong>${escHtml(sn.voice)}</strong>.` : '';
+        status.innerHTML = `Hoot Plus is ready.${v} Hoot Premium recordings still take priority \u2014 this fills in for anything new.`;
+      } else if (err) {
+        status.innerHTML = `<strong>Couldn't turn on Hoot Plus.</strong> ${escHtml(err)}`;
+      } else if (enabled) {
+        status.innerHTML = 'Tap <strong>Turn on Hoot Plus</strong> to download the voice model.';
+      } else {
+        status.innerHTML = 'Off. Hoot will still speak using the pre-recorded pack and the device voice.';
+      }
+    }
+    function updateButtons() { paintFromSnapshot(); }
+
+    enableBtn.addEventListener('click', async () => {
+      enableBtn.disabled = true;
+      await PP.VoiceNeural.enable();
+      paintFromSnapshot();
+    });
+    disableBtn.addEventListener('click', () => {
+      PP.VoiceNeural.disable();
+      paintFromSnapshot();
+    });
+    testBtn.addEventListener('click', async () => {
+      const name = (PP.Progress.profile().name || 'friend');
+      // Speak a sentence that includes the child's name so the difference
+      // from the pre-baked pack is obvious.
+      await PP.VoiceNeural.speak(`Hi ${name}! It is wonderful to talk with you today.`, {
+        rate: PP.Voice.getRate ? PP.Voice.getRate() : 1,
+        volume: PP.Voice.getVolume ? PP.Voice.getVolume() : 1,
+      });
+    });
+
+    // Live progress updates from the engine.
+    if (PP.VoiceNeural.onChange) PP.VoiceNeural.onChange(paintFromSnapshot);
+
+    paintFromSnapshot();
+    // Reflect cached snapshot state immediately (covers cases where the
+    // engine warmed up before this section rendered).
+    if (snap.ready) paintFromSnapshot();
   }
 
   function renderVoiceList(voices, current) {

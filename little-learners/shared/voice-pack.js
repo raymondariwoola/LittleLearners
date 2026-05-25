@@ -43,13 +43,15 @@
   // Normalize a free-form spoken string into a key we can use to look up a
   // clip by text. We collapse whitespace, strip trailing punctuation that
   // doesn't affect meaning, and lowercase — so "Brilliant!" and "brilliant!"
-  // match the same clip.
+  // match the same clip. We also strip a *leading* "the " article because
+  // some game callers say "the cat" while the clip is recorded as just "cat".
   function normalize(text) {
     return String(text || '')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase()
-      .replace(/[.!?\u2026]+$/g, '');
+      .replace(/^the\s+/, '')
+      .replace(/[.,;:!?\u2026]+$/g, '');
   }
 
   let state = {

@@ -256,6 +256,468 @@
       "text": "Beautiful!",
       "durationMs": 581,
       "bytes": 2491
+    },
+    "letter-A": {
+      "file": "phrases/letter-A.webm",
+      "text": "A",
+      "durationMs": 808,
+      "bytes": 3169
+    },
+    "letter-B": {
+      "file": "phrases/letter-B.webm",
+      "text": "B",
+      "durationMs": 808,
+      "bytes": 3227
+    },
+    "letter-C": {
+      "file": "phrases/letter-C.webm",
+      "text": "C",
+      "durationMs": 866,
+      "bytes": 3449
+    },
+    "letter-D": {
+      "file": "phrases/letter-D.webm",
+      "text": "D",
+      "durationMs": 785,
+      "bytes": 3166
+    },
+    "letter-E": {
+      "file": "phrases/letter-E.webm",
+      "text": "E",
+      "durationMs": 750,
+      "bytes": 3052
+    },
+    "letter-F": {
+      "file": "phrases/letter-F.webm",
+      "text": "F",
+      "durationMs": 832,
+      "bytes": 3271
+    },
+    "letter-G": {
+      "file": "phrases/letter-G.webm",
+      "text": "G",
+      "durationMs": 820,
+      "bytes": 3222
+    },
+    "letter-H": {
+      "file": "phrases/letter-H.webm",
+      "text": "H",
+      "durationMs": 913,
+      "bytes": 3546
+    },
+    "letter-I": {
+      "file": "phrases/letter-I.webm",
+      "text": "I",
+      "durationMs": 832,
+      "bytes": 3243
+    },
+    "letter-J": {
+      "file": "phrases/letter-J.webm",
+      "text": "J",
+      "durationMs": 866,
+      "bytes": 3380
+    },
+    "letter-K": {
+      "file": "phrases/letter-K.webm",
+      "text": "K",
+      "durationMs": 921,
+      "bytes": 3511
+    },
+    "letter-L": {
+      "file": "phrases/letter-L.webm",
+      "text": "L",
+      "durationMs": 855,
+      "bytes": 3385
+    },
+    "letter-M": {
+      "file": "phrases/letter-M.webm",
+      "text": "M",
+      "durationMs": 808,
+      "bytes": 3189
+    },
+    "letter-N": {
+      "file": "phrases/letter-N.webm",
+      "text": "N",
+      "durationMs": 808,
+      "bytes": 3190
+    },
+    "letter-O": {
+      "file": "phrases/letter-O.webm",
+      "text": "O",
+      "durationMs": 820,
+      "bytes": 3174
+    },
+    "letter-P": {
+      "file": "phrases/letter-P.webm",
+      "text": "P",
+      "durationMs": 832,
+      "bytes": 3344
+    },
+    "letter-Q": {
+      "file": "phrases/letter-Q.webm",
+      "text": "Q",
+      "durationMs": 820,
+      "bytes": 3265
+    },
+    "letter-R": {
+      "file": "phrases/letter-R.webm",
+      "text": "R",
+      "durationMs": 808,
+      "bytes": 3191
+    },
+    "letter-S": {
+      "file": "phrases/letter-S.webm",
+      "text": "S",
+      "durationMs": 855,
+      "bytes": 3376
+    },
+    "letter-T": {
+      "file": "phrases/letter-T.webm",
+      "text": "T",
+      "durationMs": 843,
+      "bytes": 3356
+    },
+    "letter-U": {
+      "file": "phrases/letter-U.webm",
+      "text": "U",
+      "durationMs": 750,
+      "bytes": 3056
+    },
+    "letter-V": {
+      "file": "phrases/letter-V.webm",
+      "text": "V",
+      "durationMs": 785,
+      "bytes": 3156
+    },
+    "letter-W": {
+      "file": "phrases/letter-W.webm",
+      "text": "W",
+      "durationMs": 1006,
+      "bytes": 3962
+    },
+    "letter-X": {
+      "file": "phrases/letter-X.webm",
+      "text": "X",
+      "durationMs": 924,
+      "bytes": 3620
+    },
+    "letter-Y": {
+      "file": "phrases/letter-Y.webm",
+      "text": "Y",
+      "durationMs": 924,
+      "bytes": 3631
+    },
+    "letter-Z": {
+      "file": "phrases/letter-Z.webm",
+      "text": "Z",
+      "durationMs": 866,
+      "bytes": 3419
+    },
+    "num-1": {
+      "file": "phrases/num-1.webm",
+      "text": "one",
+      "durationMs": 428,
+      "bytes": 1998
+    },
+    "num-2": {
+      "file": "phrases/num-2.webm",
+      "text": "two",
+      "durationMs": 371,
+      "bytes": 1752
+    },
+    "num-3": {
+      "file": "phrases/num-3.webm",
+      "text": "three",
+      "durationMs": 440,
+      "bytes": 2023
+    },
+    "num-4": {
+      "file": "phrases/num-4.webm",
+      "text": "four",
+      "durationMs": 415,
+      "bytes": 1946
+    },
+    "num-5": {
+      "file": "phrases/num-5.webm",
+      "text": "five",
+      "durationMs": 473,
+      "bytes": 2131
+    },
+    "num-6": {
+      "file": "phrases/num-6.webm",
+      "text": "six",
+      "durationMs": 544,
+      "bytes": 2330
+    },
+    "num-7": {
+      "file": "phrases/num-7.webm",
+      "text": "seven",
+      "durationMs": 498,
+      "bytes": 2204
+    },
+    "num-8": {
+      "file": "phrases/num-8.webm",
+      "text": "eight",
+      "durationMs": 364,
+      "bytes": 1715
+    },
+    "num-9": {
+      "file": "phrases/num-9.webm",
+      "text": "nine",
+      "durationMs": 479,
+      "bytes": 2091
+    },
+    "num-10": {
+      "file": "phrases/num-10.webm",
+      "text": "ten",
+      "durationMs": 428,
+      "bytes": 1927
+    },
+    "num-11": {
+      "file": "phrases/num-11.webm",
+      "text": "eleven",
+      "durationMs": 515,
+      "bytes": 2188
+    },
+    "num-12": {
+      "file": "phrases/num-12.webm",
+      "text": "twelve",
+      "durationMs": 475,
+      "bytes": 2072
+    },
+    "num-13": {
+      "file": "phrases/num-13.webm",
+      "text": "thirteen",
+      "durationMs": 682,
+      "bytes": 2783
+    },
+    "num-14": {
+      "file": "phrases/num-14.webm",
+      "text": "fourteen",
+      "durationMs": 740,
+      "bytes": 2968
+    },
+    "num-15": {
+      "file": "phrases/num-15.webm",
+      "text": "fifteen",
+      "durationMs": 682,
+      "bytes": 2728
+    },
+    "num-16": {
+      "file": "phrases/num-16.webm",
+      "text": "sixteen",
+      "durationMs": 765,
+      "bytes": 3064
+    },
+    "num-17": {
+      "file": "phrases/num-17.webm",
+      "text": "seventeen",
+      "durationMs": 846,
+      "bytes": 3358
+    },
+    "num-18": {
+      "file": "phrases/num-18.webm",
+      "text": "eighteen",
+      "durationMs": 654,
+      "bytes": 2611
+    },
+    "num-19": {
+      "file": "phrases/num-19.webm",
+      "text": "nineteen",
+      "durationMs": 710,
+      "bytes": 2862
+    },
+    "num-20": {
+      "file": "phrases/num-20.webm",
+      "text": "twenty",
+      "durationMs": 449,
+      "bytes": 2046
+    },
+    "color-red": {
+      "file": "phrases/color-red.webm",
+      "text": "Red",
+      "durationMs": 340,
+      "bytes": 1672
+    },
+    "color-orange": {
+      "file": "phrases/color-orange.webm",
+      "text": "Orange",
+      "durationMs": 511,
+      "bytes": 2279
+    },
+    "color-yellow": {
+      "file": "phrases/color-yellow.webm",
+      "text": "Yellow",
+      "durationMs": 476,
+      "bytes": 2117
+    },
+    "color-gold": {
+      "file": "phrases/color-gold.webm",
+      "text": "Gold",
+      "durationMs": 385,
+      "bytes": 1841
+    },
+    "color-lime": {
+      "file": "phrases/color-lime.webm",
+      "text": "Lime",
+      "durationMs": 488,
+      "bytes": 2154
+    },
+    "color-green": {
+      "file": "phrases/color-green.webm",
+      "text": "Green",
+      "durationMs": 436,
+      "bytes": 1943
+    },
+    "color-darkgreen": {
+      "file": "phrases/color-darkgreen.webm",
+      "text": "Dark green",
+      "durationMs": 746,
+      "bytes": 2932
+    },
+    "color-cyan": {
+      "file": "phrases/color-cyan.webm",
+      "text": "Turquoise",
+      "durationMs": 693,
+      "bytes": 2886
+    },
+    "color-lightblue": {
+      "file": "phrases/color-lightblue.webm",
+      "text": "Light blue",
+      "durationMs": 674,
+      "bytes": 2769
+    },
+    "color-blue": {
+      "file": "phrases/color-blue.webm",
+      "text": "Blue",
+      "durationMs": 367,
+      "bytes": 1759
+    },
+    "color-navy": {
+      "file": "phrases/color-navy.webm",
+      "text": "Navy blue",
+      "durationMs": 757,
+      "bytes": 3012
+    },
+    "color-indigo": {
+      "file": "phrases/color-indigo.webm",
+      "text": "Indigo",
+      "durationMs": 550,
+      "bytes": 2363
+    },
+    "color-purple": {
+      "file": "phrases/color-purple.webm",
+      "text": "Purple",
+      "durationMs": 470,
+      "bytes": 2105
+    },
+    "color-magenta": {
+      "file": "phrases/color-magenta.webm",
+      "text": "Magenta",
+      "durationMs": 650,
+      "bytes": 2712
+    },
+    "color-pink": {
+      "file": "phrases/color-pink.webm",
+      "text": "Pink",
+      "durationMs": 399,
+      "bytes": 1809
+    },
+    "color-peach": {
+      "file": "phrases/color-peach.webm",
+      "text": "Peach",
+      "durationMs": 505,
+      "bytes": 2245
+    },
+    "color-maroon": {
+      "file": "phrases/color-maroon.webm",
+      "text": "Maroon",
+      "durationMs": 511,
+      "bytes": 2170
+    },
+    "color-brown": {
+      "file": "phrases/color-brown.webm",
+      "text": "Brown",
+      "durationMs": 460,
+      "bytes": 2008
+    },
+    "color-beige": {
+      "file": "phrases/color-beige.webm",
+      "text": "Beige",
+      "durationMs": 425,
+      "bytes": 1932
+    },
+    "color-white": {
+      "file": "phrases/color-white.webm",
+      "text": "White",
+      "durationMs": 416,
+      "bytes": 1934
+    },
+    "color-gray": {
+      "file": "phrases/color-gray.webm",
+      "text": "Gray",
+      "durationMs": 459,
+      "bytes": 2042
+    },
+    "shape-circle": {
+      "file": "phrases/shape-circle.webm",
+      "text": "Circle",
+      "durationMs": 556,
+      "bytes": 2391
+    },
+    "shape-square": {
+      "file": "phrases/shape-square.webm",
+      "text": "Square",
+      "durationMs": 533,
+      "bytes": 2326
+    },
+    "shape-triangle": {
+      "file": "phrases/shape-triangle.webm",
+      "text": "Triangle",
+      "durationMs": 701,
+      "bytes": 2803
+    },
+    "shape-rectangle": {
+      "file": "phrases/shape-rectangle.webm",
+      "text": "Rectangle",
+      "durationMs": 711,
+      "bytes": 2938
+    },
+    "shape-oval": {
+      "file": "phrases/shape-oval.webm",
+      "text": "Oval",
+      "durationMs": 407,
+      "bytes": 1890
+    },
+    "shape-star": {
+      "file": "phrases/shape-star.webm",
+      "text": "Star",
+      "durationMs": 486,
+      "bytes": 2184
+    },
+    "shape-heart": {
+      "file": "phrases/shape-heart.webm",
+      "text": "Heart",
+      "durationMs": 431,
+      "bytes": 1955
+    },
+    "shape-diamond": {
+      "file": "phrases/shape-diamond.webm",
+      "text": "Diamond",
+      "durationMs": 514,
+      "bytes": 2232
+    },
+    "shape-hexagon": {
+      "file": "phrases/shape-hexagon.webm",
+      "text": "Hexagon",
+      "durationMs": 794,
+      "bytes": 3189
+    },
+    "shape-crescent": {
+      "file": "phrases/shape-crescent.webm",
+      "text": "Crescent",
+      "durationMs": 540,
+      "bytes": 2315
     }
   }
 }

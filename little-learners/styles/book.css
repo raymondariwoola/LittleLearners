@@ -317,6 +317,25 @@
   gap: 12px;
   padding-top: 10px;
 }
+
+.ll-neural__progress {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ll-neural__bar {
+  height: 8px;
+  background: rgba(0,0,0,.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.ll-neural__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--pp-mint, #6cd1a6), var(--pp-sun, #ffd54a));
+  transition: width .25s ease;
+}
 .ll-set__foot {
   text-align: center;
   color: var(--pp-ink-soft);

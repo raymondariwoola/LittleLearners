@@ -22,6 +22,19 @@ const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 const VOICE_CACHE = 'pp-voice-assets-v1';
 const VOICE_PATH_RE = /\/audio\/voice\//;
 
+// Neural-tier runtime + model files come from third-party CDNs (esm.sh for
+// the JS, huggingface.co for the Kokoro model). They're large and immutable
+// per URL, so we cache-first them in a dedicated bucket that also survives
+// version bumps. This makes Hoot Plus work offline after first download.
+const NEURAL_CACHE = 'pp-neural-tts-v1';
+const NEURAL_HOSTS = new Set([
+  'esm.sh',
+  'cdn.jsdelivr.net',
+  'huggingface.co',
+  'cdn-lfs.huggingface.co',
+  'cas-bridge.xethub.hf.co', // HF often redirects model files through here
+]);
+
 const PRECACHE = [
   './',
   './index.html',
@@ -105,11 +118,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      // Keep the active app cache AND the dedicated voice cache around when
-      // cleaning up stale versions; voice clips are large and don't change
+      // Keep the active app cache AND the dedicated voice + neural caches
+      // when cleaning stale versions; both are large and don't change
       // across app updates.
       Promise.all(keys
-        .filter((k) => k !== CACHE_NAME && k !== VOICE_CACHE)
+        .filter((k) => k !== CACHE_NAME && k !== VOICE_CACHE && k !== NEURAL_CACHE)
         .map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
@@ -141,6 +154,12 @@ self.addEventListener('fetch', (event) => {
     }
   } else if (isFonts) {
     event.respondWith(networkFirst(req));
+  } else if (NEURAL_HOSTS.has(url.host)) {
+    // Neural TTS runtime + model files (esm.sh, huggingface.co). Cache-first
+    // in a dedicated bucket so a returning visitor doesn't re-download 80 MB
+    // every session. These URLs are content-hashed by the CDN so a stale
+    // entry is safe to keep indefinitely.
+    event.respondWith(cacheFirstNeural(req));
   }
   // Everything else: let the browser handle it.
 });
@@ -206,6 +225,29 @@ async function cacheFirstVoice(req) {
   try {
     const res = await fetch(req);
     if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+    return res;
+  } catch (err) {
+    if (cached) return cached;
+    throw err;
+  }
+}
+
+// Cache-first for the neural TTS runtime + model. Some HuggingFace responses
+// arrive as opaque (no-cors) when fetched cross-origin without credentials —
+// we still cache them so subsequent loads work offline, but we only
+// re-serve cached entries with a matching response type to avoid surprising
+// any caller that needs the original headers.
+async function cacheFirstNeural(req) {
+  const cache = await caches.open(NEURAL_CACHE);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+  try {
+    const res = await fetch(req);
+    // Only cache successful or opaque responses; skip 4xx/5xx so a transient
+    // error doesn't poison the cache.
+    if (res && (res.ok || res.type === 'opaque')) {
+      cache.put(req, res.clone()).catch(() => {});
+    }
     return res;
   } catch (err) {
     if (cached) return cached;
