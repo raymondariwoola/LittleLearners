@@ -312,6 +312,18 @@
 
   // ---- speak -------------------------------------------------------------
   let current = null;
+  // Serialize calls into the underlying engine. Kokoro's ONNX session is
+  // single-threaded — launching a second generate() while the first is in
+  // flight throws "Session already started" and then corrupts the next call
+  // with "Cannot read properties of null". Piper has similar constraints.
+  let synthChain = Promise.resolve();
+  function runSynth(text, opts) {
+    const next = synthChain.then(() => state.engine.synth(text, opts));
+    // Keep the chain alive even if a call rejects, so a one-off failure
+    // doesn't permanently break the queue.
+    synthChain = next.catch(() => {});
+    return next;
+  }
 
   async function speak(text, opts = {}) {
     if (!state.ready || !state.engine || !text) return false;
@@ -319,7 +331,7 @@
       const key = normalizeKey(text, opts);
       let url = state.cache.get(key);
       if (!url) {
-        const blob = await state.engine.synth(text, opts);
+        const blob = await runSynth(text, opts);
         if (!blob) return false;
         url = URL.createObjectURL(blob);
         // Bound the in-memory cache so a long session can't leak blobs.
@@ -340,7 +352,10 @@
 
   function playUrl(url, opts) {
     return new Promise(resolve => {
-      const a = new Audio();
+      // Use createElement instead of `new Audio()` because some host pages
+      // run a SES/lockdown shim (MetaMask, etc.) that freezes or removes
+      // the global Audio constructor, raising "Audio is not a constructor".
+      const a = document.createElement('audio');
       a.src = url;
       a.preload = 'auto';
       a.volume = Math.max(0, Math.min(1, opts.volume ?? 1));

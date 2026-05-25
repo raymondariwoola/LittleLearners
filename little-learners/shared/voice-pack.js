@@ -138,7 +138,10 @@
     if (opts.interrupt !== false) interrupt();
 
     const url = packUrl(meta.file);
-    const audio = new Audio();
+    // createElement avoids the "Audio is not a constructor" crash that
+    // happens when a host page (or a wallet extension's SES lockdown) has
+    // shadowed the global Audio symbol.
+    const audio = document.createElement('audio');
     audio.src = url;
     audio.preload = 'auto';
     audio.playbackRate = Math.max(0.5, Math.min(2, opts.rate ?? 1));
