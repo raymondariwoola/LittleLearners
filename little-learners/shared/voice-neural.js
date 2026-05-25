@@ -6,53 +6,57 @@
  * everything still sounds like Hoot instead of switching to the system
  * voice mid-sentence.
  *
- * Engines
- * -------
- *   - 'kokoro' (recommended) — kokoro-js, ~80 MB ONNX model, English voices,
- *     WebGPU or WASM. Highest quality available in a single npm package.
- *     Model: onnx-community/Kokoro-82M-v1.0-ONNX on HuggingFace Hub.
- *   - 'piper'  (experimental) — Piper voices via @diffusionstudio/vits-web,
- *     ~20 MB per voice, WASM only. Smaller download, lower quality. Marked
- *     experimental because the in-browser Piper ecosystem moves fast and we
- *     haven't pinned a long-term-stable build yet.
+ * Engine
+ * ------
+ * Piper voices via @diffusionstudio/vits-web. Each voice is ~20 MB,
+ * WASM-only, runs offline after the first download. Stored in the browser's
+ * Origin Private File System (OPFS) under "piper/".
  *
  * Storage layout
  * --------------
  *   - The engine library is fetched from a CDN (esm.sh) and cached by the
  *     browser HTTP cache + our service worker.
- *   - The model itself is downloaded once via the library's own loader
- *     (transformers.js for Kokoro). The browser cache + SW pass-through
- *     keeps it offline. We do not add a separate IndexedDB cache —
- *     transformers.js already maintains one.
+ *   - The voice .onnx + .json are downloaded from Hugging Face and stored
+ *     in OPFS by vits-web itself.
  *   - Per-text synth results are cached in-memory as Blob URLs for the
  *     session (helps when the same line replays during a round).
  *
  * Settings hooks (read from PP.Progress.settings()):
  *   - neuralEnabled : true to allow use of this tier
- *   - neuralEngine  : 'kokoro' | 'piper'
- *   - neuralVoice   : engine-specific voice id (e.g. 'af_bella' for Kokoro)
+ *   - neuralVoice   : Piper voice id (e.g. 'en_US-amy-medium')
  *   - neuralAutoLoad: true to warm up on page load; default false (manual)
  */
 (function () {
-  // ---- pinned CDN URLs ---------------------------------------------------
-  // Pin specific versions so a breaking upstream release can't silently
-  // black-hole the voice. Bump deliberately when re-testing.
-  const KOKORO_ESM = 'https://esm.sh/kokoro-js@1.2.0';
-  const KOKORO_MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX';
-  const KOKORO_DEFAULT_VOICE = 'af_bella'; // warm female voice, good for kids
-  const KOKORO_DEFAULT_DTYPE = 'q8';       // ~80 MB; 'fp32' is ~330 MB
-
-  const PIPER_ESM = 'https://esm.sh/@diffusionstudio/vits-web@1.0.3';
+  // ---- pinned CDN URL ----------------------------------------------------
+  // Use jsDelivr's rolled bundle (`/+esm`) rather than esm.sh: the esm.sh
+  // build injects an `unenv` Node `fs` polyfill that throws
+  // "[unenv] fs.readFile is not implemented yet!" when onnxruntime tries to
+  // read the model. jsDelivr ships dist/vits-web.js verbatim from npm and
+  // loads onnxruntime-web from cdnjs (a real browser CDN), so it just works.
+  const PIPER_ESM = 'https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/+esm';
   const PIPER_DEFAULT_VOICE = 'en_US-amy-medium';
+
+  // Subset of Piper voices we expose in the UI. The full list lives in the
+  // vits-web PATH_MAP; we curate kid-friendly American English voices first.
+  const VOICE_CATALOG = [
+    { id: 'en_US-amy-medium',       label: 'Amy (US, medium)',       size: '~20 MB' },
+    { id: 'en_US-amy-low',          label: 'Amy (US, low)',          size: '~7 MB'  },
+    { id: 'en_US-hfc_female-medium',label: 'HFC Female (US, medium)',size: '~20 MB' },
+    { id: 'en_US-libritts_r-medium',label: 'LibriTTS-R (US, medium)',size: '~20 MB' },
+    { id: 'en_US-lessac-medium',    label: 'Lessac (US, medium)',    size: '~20 MB' },
+    { id: 'en_US-ryan-medium',      label: 'Ryan (US, medium)',      size: '~20 MB' },
+    { id: 'en_US-joe-medium',       label: 'Joe (US, medium)',       size: '~20 MB' },
+    { id: 'en_GB-alan-medium',      label: 'Alan (UK, medium)',      size: '~20 MB' },
+  ];
+  const VALID_VOICE_IDS = new Set(VOICE_CATALOG.map(v => v.id));
 
   // ---- state -------------------------------------------------------------
   const state = {
     ready: false,
     loading: null,
     error: null,
-    config: null,         // { engine, voice, dtype }
-    engine: null,         // active adapter { kind, synth, listVoices }
-    engineKind: null,
+    config: null,         // { voice }
+    engine: null,         // { synth, listVoices, mod }
     cache: new Map(),     // normalized text -> Blob URL
     progress: { phase: 'idle', loaded: 0, total: 0, percent: 0, label: '' },
   };
@@ -66,7 +70,7 @@
       ready: state.ready,
       loading: !!state.loading,
       error: state.error ? String(state.error.message || state.error) : null,
-      engine: state.engineKind,
+      engine: 'piper',
       voice: state.config && state.config.voice,
       progress: { ...state.progress },
     };
@@ -83,7 +87,10 @@
   // ---- capability detection ---------------------------------------------
   function capability() {
     const hasWasm = typeof WebAssembly === 'object';
-    const hasGpu  = typeof navigator !== 'undefined' && !!navigator.gpu;
+    // Piper stores models in OPFS; require navigator.storage.getDirectory.
+    const hasOpfs = typeof navigator !== 'undefined'
+      && navigator.storage
+      && typeof navigator.storage.getDirectory === 'function';
     // Reject devices with <2 GB RAM where reported. Safari typically omits
     // deviceMemory; we trust those (they're nearly always >= 4 GB anyway).
     const memOk = (typeof navigator === 'undefined' || navigator.deviceMemory == null)
@@ -92,12 +99,9 @@
     const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
     const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
     return {
-      capable: hasWasm && memOk,
-      webgpu: hasGpu,
+      capable: hasWasm && hasOpfs && memOk,
       mobile: isMobile,
-      reason: !hasWasm ? 'no-wasm' : (!memOk ? 'low-memory' : 'ok'),
-      // On mobile without WebGPU, Piper's smaller footprint is a better bet.
-      recommendedEngine: hasGpu ? 'kokoro' : (isMobile ? 'piper' : 'kokoro'),
+      reason: !hasWasm ? 'no-wasm' : (!hasOpfs ? 'no-opfs' : (!memOk ? 'low-memory' : 'ok')),
     };
   }
 
@@ -107,77 +111,35 @@
 
   function readConfig() {
     const s = S();
-    const engine = s.neuralEngine || 'kokoro';
-    const voice = s.neuralVoice || (engine === 'piper' ? PIPER_DEFAULT_VOICE : KOKORO_DEFAULT_VOICE);
-    const dtype = s.neuralDtype || KOKORO_DEFAULT_DTYPE;
-    return { engine, voice, dtype };
+    // Migrate any legacy/invalid voice id (e.g. 'af_bella' from the old
+    // Kokoro engine) back to the Piper default so we don't 404 on download.
+    let voice = s.neuralVoice;
+    if (!voice || !VALID_VOICE_IDS.has(voice)) voice = PIPER_DEFAULT_VOICE;
+    return { voice };
   }
 
   function configure(cfg) {
-    const next = { ...readConfig(), ...cfg };
+    const next = { ...readConfig(), ...(cfg || {}) };
+    if (!VALID_VOICE_IDS.has(next.voice)) next.voice = PIPER_DEFAULT_VOICE;
     state.config = next;
-    saveS({
-      neuralEngine: next.engine,
-      neuralVoice: next.voice,
-      neuralDtype: next.dtype,
-    });
+    saveS({ neuralVoice: next.voice });
     notify();
   }
 
-  // ---- engine loaders ----------------------------------------------------
-  async function loadKokoro(cfg) {
-    setProgress({ phase: 'lib', label: 'Loading Kokoro library\u2026', loaded: 0, total: 0, percent: 0 });
-    const mod = await import(/* @vite-ignore */ KOKORO_ESM);
-    const KokoroTTS = mod.KokoroTTS || (mod.default && mod.default.KokoroTTS);
-    if (!KokoroTTS) throw new Error('kokoro-js: KokoroTTS export not found');
-
-    setProgress({ phase: 'model', label: 'Downloading voice model (one-time ~80 MB)\u2026', loaded: 0, total: 0, percent: 0 });
-    const cap = capability();
-    const tts = await KokoroTTS.from_pretrained(KOKORO_MODEL, {
-      dtype: cfg.dtype || KOKORO_DEFAULT_DTYPE,
-      device: cap.webgpu ? 'webgpu' : 'wasm',
-      // transformers.js progress shape: { status, file, progress, loaded, total }
-      progress_callback: (info) => {
-        if (!info) return;
-        if (info.status === 'progress' || info.status === 'download') {
-          setProgress({
-            phase: 'model',
-            label: info.file ? `Downloading ${info.file}\u2026` : 'Downloading voice model\u2026',
-            loaded: info.loaded || 0,
-            total: info.total || 0,
-          });
-        } else if (info.status === 'done' || info.status === 'ready') {
-          setProgress({ phase: 'ready', label: 'Voice model ready', percent: 100 });
-        }
-      },
-    });
-    return {
-      kind: 'kokoro',
-      synth: async (text, opts) => {
-        const out = await tts.generate(text, {
-          voice: opts.voice || cfg.voice || KOKORO_DEFAULT_VOICE,
-          speed: opts.rate || 1,
-        });
-        // out: { audio: Float32Array, sampling_rate: number }
-        return floatToWavBlob(out.audio, out.sampling_rate || 24000);
-      },
-      listVoices: () => {
-        try { return Object.keys(tts.voices || {}); }
-        catch { return []; }
-      },
-    };
-  }
-
+  // ---- engine loader -----------------------------------------------------
   async function loadPiper(cfg) {
     setProgress({ phase: 'lib', label: 'Loading Piper library\u2026', loaded: 0, total: 0, percent: 0 });
-    // @diffusionstudio/vits-web exposes `predict({ text, voiceId })` and a
-    // `download(voiceId, onProgress)` helper. API surface:
-    //   import { predict, download, voices } from '@diffusionstudio/vits-web';
+    // @diffusionstudio/vits-web exposes:
+    //   predict({ text, voiceId }, progressCb?) -> Blob
+    //   download(voiceId, progressCb?)
+    //   stored() -> string[]
+    //   remove(voiceId), flush()
+    //   voices() -> Promise<Voice[]>
     // Repo: https://github.com/diffusionstudio/vits-web
     const mod = await import(/* @vite-ignore */ PIPER_ESM);
-    const predict = mod.predict || (mod.default && mod.default.predict);
+    const predict  = mod.predict  || (mod.default && mod.default.predict);
     const download = mod.download || (mod.default && mod.default.download);
-    if (!predict) throw new Error('vits-web: predict export not found');
+    if (!predict)  throw new Error('vits-web: predict export not found');
 
     const voiceId = cfg.voice || PIPER_DEFAULT_VOICE;
     if (typeof download === 'function') {
@@ -189,28 +151,25 @@
           loaded: (p && p.loaded) || 0,
           total: (p && p.total) || 0,
         }));
-      } catch (_) {
-        // download() may not exist in some builds; predict() also lazy-downloads.
+      } catch (err) {
+        // download() failure usually means a 404 from a stale voice id.
+        // Surface a clean error rather than the cryptic JSON parse one.
+        throw new Error(`Could not download voice "${voiceId}": ${err.message || err}`);
       }
     }
     setProgress({ phase: 'ready', label: 'Voice model ready', percent: 100 });
 
     return {
-      kind: 'piper',
       mod,
       synth: async (text, opts) => {
-        const wavBlob = await predict({
-          text,
-          voiceId: opts.voice || voiceId,
-        });
+        const id = opts.voice || voiceId;
+        if (!VALID_VOICE_IDS.has(id)) {
+          throw new Error(`Unknown Piper voice "${id}"`);
+        }
+        const wavBlob = await predict({ text, voiceId: id });
         return wavBlob instanceof Blob ? wavBlob : new Blob([wavBlob], { type: 'audio/wav' });
       },
-      listVoices: () => {
-        try {
-          const list = mod.voices || (mod.default && mod.default.voices) || {};
-          return Object.keys(list);
-        } catch { return []; }
-      },
+      listVoices: () => VOICE_CATALOG.map(v => v.id),
     };
   }
 
@@ -232,11 +191,13 @@
 
     state.loading = (async () => {
       try {
-        const engine = cfg.engine === 'piper' ? await loadPiper(cfg) : await loadKokoro(cfg);
+        const engine = await loadPiper(cfg);
         state.engine = engine;
-        state.engineKind = engine.kind;
         state.ready = true;
-        saveS({ neuralEnabled: true });
+        // Persist BOTH flags so subsequent page loads auto-warm Piper without
+        // requiring another click. The OPFS model is already on disk, so the
+        // "warm" is effectively free (vits-web's download() short-circuits).
+        saveS({ neuralEnabled: true, neuralAutoLoad: true });
         setProgress({ phase: 'ready', label: 'Voice ready', percent: 100 });
         return true;
       } catch (err) {
@@ -256,7 +217,6 @@
     state.ready = false;
     state.loading = null;
     state.engine = null;
-    state.engineKind = null;
     state.cache.forEach(url => { try { URL.revokeObjectURL(url); } catch (_) {} });
     state.cache.clear();
     setProgress({ phase: 'idle', label: '', loaded: 0, total: 0, percent: 0 });
@@ -265,25 +225,29 @@
   }
 
   // Wipe the persisted model from disk. This includes:
-  //   - the service worker's NEURAL_CACHE (esm.sh + huggingface.co URLs)
-  //   - Piper's own IndexedDB-backed model store (when loaded)
-  // Note: transformers.js caches model files in the browser's Cache Storage,
-  // which the SW PURGE_NEURAL_CACHE message also covers because all model
-  // requests go through huggingface.co. We can't reach transformers.js's
-  // private cache name directly from here, but the SW handles those URLs.
+  //   - Piper's OPFS model store (vits-web.flush())
+  //   - the service worker's NEURAL_CACHE bucket (esm.sh + huggingface URLs)
   async function removeDownload() {
     const eng = state.engine;
     // 1. Tear down in-memory state first so nothing tries to use a
     //    half-removed model.
     disable();
 
-    // 2. Piper exposes a remove/flush API for its IndexedDB store.
-    if (eng && eng.kind === 'piper' && eng.mod) {
+    // 2. Piper exposes a flush() that wipes its OPFS directory.
+    if (eng && eng.mod) {
       try {
         if (typeof eng.mod.flush === 'function') await eng.mod.flush();
-        // remove(voiceId) deletes a single voice; flush() handles the rest.
       } catch (err) {
         console.warn('[PP.VoiceNeural] Piper flush failed:', err);
+      }
+    } else {
+      // Engine not loaded right now; reach into vits-web ourselves so the
+      // "Remove download" button still works without re-downloading first.
+      try {
+        const mod = await import(/* @vite-ignore */ PIPER_ESM);
+        if (typeof mod.flush === 'function') await mod.flush();
+      } catch (err) {
+        console.warn('[PP.VoiceNeural] Piper flush (cold) failed:', err);
       }
     }
 
@@ -312,10 +276,9 @@
 
   // ---- speak -------------------------------------------------------------
   let current = null;
-  // Serialize calls into the underlying engine. Kokoro's ONNX session is
-  // single-threaded — launching a second generate() while the first is in
-  // flight throws "Session already started" and then corrupts the next call
-  // with "Cannot read properties of null". Piper has similar constraints.
+  // Serialize calls into the underlying engine. Piper's ONNX session is
+  // single-threaded — launching a second predict() while the first is in
+  // flight can throw or corrupt the next call.
   let synthChain = Promise.resolve();
   function runSynth(text, opts) {
     const next = synthChain.then(() => state.engine.synth(text, opts));
@@ -359,11 +322,9 @@
       a.src = url;
       a.preload = 'auto';
       a.volume = Math.max(0, Math.min(1, opts.volume ?? 1));
-      // NOTE: do NOT apply opts.rate as playbackRate here. Kokoro/Piper
-      // already time-stretch during synthesis (`speed` arg). Applying it
-      // again here would compound (e.g. 1.3 * 1.3 = 1.69x), which produces
-      // chipmunk/garbled output that can sound like a foreign language.
-      a.playbackRate = 1;
+      // Apply playback rate here as an inexpensive time-stretch. Piper
+      // doesn't expose a `speed` synth param, so this is the only knob.
+      a.playbackRate = Math.max(0.5, Math.min(2, opts.rate ?? 1));
       if (current) { try { current.pause(); } catch (_) {} }
       current = a;
       let done = false;
@@ -391,32 +352,6 @@
     return v + '|' + String(text).trim().toLowerCase();
   }
 
-  // ---- Float32 -> WAV Blob (used by Kokoro adapter) ----------------------
-  // Wrap raw float samples in a minimal RIFF/WAVE container so HTMLAudio can
-  // play them without WebAudio plumbing on the page.
-  function floatToWavBlob(samples, sampleRate) {
-    const numChannels = 1;
-    const bitsPerSample = 16;
-    const blockAlign = numChannels * bitsPerSample / 8;
-    const byteRate = sampleRate * blockAlign;
-    const dataSize = samples.length * 2;
-    const buffer = new ArrayBuffer(44 + dataSize);
-    const view = new DataView(buffer);
-    let p = 0;
-    function w(s) { for (let i = 0; i < s.length; i++) view.setUint8(p++, s.charCodeAt(i)); }
-    function u32(v) { view.setUint32(p, v, true); p += 4; }
-    function u16(v) { view.setUint16(p, v, true); p += 2; }
-    w('RIFF'); u32(36 + dataSize); w('WAVE');
-    w('fmt '); u32(16); u16(1); u16(numChannels); u32(sampleRate); u32(byteRate); u16(blockAlign); u16(bitsPerSample);
-    w('data'); u32(dataSize);
-    for (let i = 0; i < samples.length; i++) {
-      const s = Math.max(-1, Math.min(1, samples[i]));
-      view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-      p += 2;
-    }
-    return new Blob([buffer], { type: 'audio/wav' });
-  }
-
   // ---- public API --------------------------------------------------------
   window.PP = window.PP || {};
   window.PP.VoiceNeural = {
@@ -424,20 +359,34 @@
     isReady: () => state.ready,
     isLoading: () => !!state.loading,
     snapshot, onChange,
-    listVoices: () => state.engine ? state.engine.listVoices() : [],
+    listVoices: () => state.engine ? state.engine.listVoices() : VOICE_CATALOG.map(v => v.id),
+    voiceCatalog: () => VOICE_CATALOG.slice(),
     // Constants exposed so callers / SW can pre-warm or filter.
-    urls: { KOKORO_ESM, PIPER_ESM, KOKORO_MODEL },
-    defaults: { KOKORO_DEFAULT_VOICE, PIPER_DEFAULT_VOICE, KOKORO_DEFAULT_DTYPE },
+    urls: { PIPER_ESM },
+    defaults: { PIPER_DEFAULT_VOICE },
   };
 
-  // Auto-warm if the user opted in previously AND asked us to load eagerly.
-  // Default is lazy (wait for an explicit enable() click in settings) so we
-  // never surprise visitors with an 80 MB download.
+  // One-time migration: if a previous Kokoro install left a Kokoro voice id
+  // in storage (e.g. 'af_bella'), reset it to a valid Piper voice so the
+  // first download() doesn't 404 on `/undefined.json`.
+  {
+    const s = S();
+    if (s.neuralVoice && !VALID_VOICE_IDS.has(s.neuralVoice)) {
+      saveS({ neuralVoice: PIPER_DEFAULT_VOICE });
+    }
+    // Drop any stale engine selector — only piper exists now.
+    if (s.neuralEngine && s.neuralEngine !== 'piper') {
+      saveS({ neuralEngine: 'piper' });
+    }
+  }
+
+  // Auto-warm whenever the user has previously opted in. Treat neuralEnabled
+  // as the source of truth: if it's true, the model is already in OPFS and
+  // download() will short-circuit, so warming costs essentially nothing.
+  // (The neuralAutoLoad flag remains for legacy/UI introspection.)
   const s0 = S();
-  if (s0.neuralEnabled === true && s0.neuralAutoLoad === true) {
+  if (s0.neuralEnabled === true) {
     state.config = readConfig();
     enable().catch(() => { /* error captured in snapshot */ });
-  } else if (s0.neuralEnabled === true) {
-    state.config = readConfig();
   }
 })();

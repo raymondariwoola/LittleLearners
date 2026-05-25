@@ -309,7 +309,10 @@
     const snap = PP.VoiceNeural.snapshot();
     const s = PP.Progress.settings();
     const enabled = s.neuralEnabled === true;
-    const engine = s.neuralEngine || cap.recommendedEngine || 'kokoro';
+    const catalog = (PP.VoiceNeural.voiceCatalog && PP.VoiceNeural.voiceCatalog()) || [];
+    const defaultVoice = (PP.VoiceNeural.defaults && PP.VoiceNeural.defaults.PIPER_DEFAULT_VOICE) || (catalog[0] && catalog[0].id);
+    const validIds = new Set(catalog.map(v => v.id));
+    const currentVoice = (validIds.has(s.neuralVoice) ? s.neuralVoice : defaultVoice);
 
     if (!cap.capable) {
       body.innerHTML = `<p class="ll-set__hint">This device can't run an on-device voice model (${escHtml(cap.reason)}). Hoot Premium and the device voice still work great.</p>`;
@@ -317,7 +320,7 @@
     }
 
     body.innerHTML = `
-      <div id="nEngineList" class="ll-set__pills" role="radiogroup" aria-label="Engine"></div>
+      <div id="nVoiceList" class="ll-set__pills" role="radiogroup" aria-label="Voice"></div>
 
       <div class="ll-set__row" style="margin-top:8px;">
         <button id="nEnable"  type="button" class="pp-btn pp-btn--primary"></button>
@@ -341,38 +344,33 @@
       <details class="ll-set__details">
         <summary>What gets downloaded?</summary>
         <div class="ll-set__detailsBody">
-          <p class="ll-set__hint"><strong>Kokoro</strong>: one-time ~80&nbsp;MB voice model from Hugging Face. Higher quality. Best with WebGPU (most modern laptops + desktops).</p>
-          <p class="ll-set__hint"><strong>Piper</strong>: one-time ~20&nbsp;MB voice. Smaller download, runs on phones. Quality is good but not as warm as Kokoro.</p>
-          <p class="ll-set__hint">Stored in your browser's cache. Nothing leaves the device after that. Clearing site data removes it.</p>
+          <p class="ll-set__hint"><strong>Piper</strong> voice (~20&nbsp;MB) from Hugging Face. WASM-only, runs offline after the first download.</p>
+          <p class="ll-set__hint">Stored in your browser's Origin Private File System. Nothing leaves the device. Clearing site data removes it.</p>
         </div>
       </details>
     `;
 
-    // ----- engine picker -----
-    const engineOpts = [
-      { id: 'kokoro', icon: '\uD83C\uDF1F', label: 'Kokoro', sub: cap.webgpu ? 'best quality (~80 MB)' : 'best quality, slower without WebGPU' },
-      { id: 'piper',  icon: '\uD83C\uDFB6', label: 'Piper',  sub: 'lightweight (~20 MB), good on phones' },
-    ];
-    const eList = $('#nEngineList');
-    engineOpts.forEach(o => {
+    // ----- voice picker -----
+    const vList = $('#nVoiceList');
+    catalog.forEach(v => {
       const b = document.createElement('button');
       b.type = 'button';
       b.role = 'radio';
-      const active = o.id === engine;
+      const active = v.id === currentVoice;
       b.className = 'll-set__pill' + (active ? ' is-active' : '');
       b.setAttribute('aria-checked', String(active));
-      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong><em>${o.sub}</em>`;
+      b.innerHTML = `<span>\uD83C\uDFB6</span><strong>${escHtml(v.label)}</strong><em>${escHtml(v.size)}</em>`;
       b.addEventListener('click', () => {
-        eList.querySelectorAll('.ll-set__pill').forEach(x => {
+        vList.querySelectorAll('.ll-set__pill').forEach(x => {
           x.classList.remove('is-active');
           x.setAttribute('aria-checked', 'false');
         });
         b.classList.add('is-active');
         b.setAttribute('aria-checked', 'true');
-        PP.VoiceNeural.configure({ engine: o.id });
+        PP.VoiceNeural.configure({ voice: v.id });
         updateButtons();
       });
-      eList.appendChild(b);
+      vList.appendChild(b);
     });
 
     // ----- enable / disable / test -----

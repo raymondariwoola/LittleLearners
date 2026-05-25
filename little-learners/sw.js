@@ -12,7 +12,7 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.5.0';
+const CACHE_VERSION = 'v1.5.1';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 // Voice assets (pre-baked phrase clips and the manifest) live in a separate
@@ -23,13 +23,14 @@ const VOICE_CACHE = 'pp-voice-assets-v1';
 const VOICE_PATH_RE = /\/audio\/voice\//;
 
 // Neural-tier runtime + model files come from third-party CDNs (esm.sh for
-// the JS, huggingface.co for the Kokoro model). They're large and immutable
+// the JS, huggingface.co for the Piper voice). They're large and immutable
 // per URL, so we cache-first them in a dedicated bucket that also survives
 // version bumps. This makes Hoot Plus work offline after first download.
 const NEURAL_CACHE = 'pp-neural-tts-v1';
 const NEURAL_HOSTS = new Set([
   'esm.sh',
   'cdn.jsdelivr.net',
+  'cdnjs.cloudflare.com', // onnxruntime-web wasm loaded by vits-web
   'huggingface.co',
   'cdn-lfs.huggingface.co',
   'cas-bridge.xethub.hf.co', // HF often redirects model files through here
