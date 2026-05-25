@@ -359,7 +359,11 @@
       a.src = url;
       a.preload = 'auto';
       a.volume = Math.max(0, Math.min(1, opts.volume ?? 1));
-      a.playbackRate = Math.max(0.5, Math.min(2, opts.rate ?? 1));
+      // NOTE: do NOT apply opts.rate as playbackRate here. Kokoro/Piper
+      // already time-stretch during synthesis (`speed` arg). Applying it
+      // again here would compound (e.g. 1.3 * 1.3 = 1.69x), which produces
+      // chipmunk/garbled output that can sound like a foreign language.
+      a.playbackRate = 1;
       if (current) { try { current.pause(); } catch (_) {} }
       current = a;
       let done = false;
