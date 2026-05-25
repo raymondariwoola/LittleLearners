@@ -130,58 +130,117 @@
     const wrap = $('#secVoice');
     if (!wrap) return;
     const body = sectionShell(wrap, '🗣️ Voice',
-      'Pick a friendly storyteller. <strong>Premium</strong> and <strong>Natural</strong> voices sound the most human. On macOS / iOS you can download more in <em>System Settings → Accessibility → Spoken Content → System Voice</em>.');
+      "Pick how Hoot sounds. <strong>Hoot Premium</strong> uses a warm pre-recorded voice that's the same on every device. <strong>Device voice</strong> uses whatever your phone or computer has installed.");
 
-    if (!PP.Voice.isSupported || !PP.Voice.isSupported()) {
-      body.innerHTML = `<p>This browser does not support speech. Try Safari, Chrome, or Edge on a recent device.</p>`;
-      return;
-    }
+    const mode = (PP.Voice.getVoiceMode && PP.Voice.getVoiceMode()) || 'premium';
+    const packInfo = (PP.VoicePack && PP.VoicePack.getPackInfo && PP.VoicePack.getPackInfo()) || null;
+    const packLoaded = !!(PP.VoicePack && PP.VoicePack.isLoaded && PP.VoicePack.isLoaded());
 
-    const voices = (PP.Voice.getVoices && PP.Voice.getVoices()) || [];
+    const supported = PP.Voice.isSupported && PP.Voice.isSupported();
+    const deviceWarning = !supported
+      ? `<p class="ll-set__hint">Your browser doesn't support device speech. Hoot Premium will still work.</p>`
+      : '';
 
     body.innerHTML = `
-      <div class="ll-set__row">
-        <button id="vMute" type="button" class="pp-btn pp-btn--secondary"></button>
-        <button id="vTest" type="button" class="pp-btn pp-btn--primary">▶ Try this voice</button>
+      <div id="vModeList" class="ll-set__pills" role="radiogroup" aria-label="Hoot's voice"></div>
+
+      <div id="vPackInfo" class="ll-set__hint" aria-live="polite"></div>
+
+      <div class="ll-set__row" style="margin-top:8px;">
+        <button id="vTest" type="button" class="pp-btn pp-btn--primary">▶ Hear Hoot say hi</button>
       </div>
 
-      <label class="ll-set__field">
-        <span>Speed <output id="vRateOut"></output></span>
-        <input id="vRate" type="range" min="0.7" max="1.3" step="0.05" />
-      </label>
+      <details id="vAdvanced" class="ll-set__details">
+        <summary>Advanced — device voice tuning</summary>
+        <div class="ll-set__detailsBody">
+          ${deviceWarning}
+          <label class="ll-set__field">
+            <span>Speed <output id="vRateOut"></output></span>
+            <input id="vRate" type="range" min="0.7" max="1.3" step="0.05" />
+          </label>
+          <label class="ll-set__field">
+            <span>Pitch <output id="vPitchOut"></output></span>
+            <input id="vPitch" type="range" min="0.8" max="1.4" step="0.02" />
+          </label>
+          <label class="ll-set__field">
+            <span>Volume <output id="vVolOut"></output></span>
+            <input id="vVol" type="range" min="0" max="1" step="0.05" />
+          </label>
+          <div class="ll-set__field">
+            <span>Device storyteller <em id="vListCount"></em></span>
+            <div id="vList" class="ll-voice-list"></div>
+          </div>
+        </div>
+      </details>
+    `;
 
-      <label class="ll-set__field">
-        <span>Pitch <output id="vPitchOut"></output></span>
-        <input id="vPitch" type="range" min="0.8" max="1.4" step="0.02" />
-      </label>
-
-      <label class="ll-set__field">
-        <span>Volume <output id="vVolOut"></output></span>
-        <input id="vVol" type="range" min="0" max="1" step="0.05" />
-      </label>
-
-      <div class="ll-set__field">
-        <span>Storyteller (${voices.length} available)</span>
-        <div id="vList" class="ll-voice-list"></div>
-      </div>`;
-
-    const setMuteLabel = () => $('#vMute').textContent = PP.Voice.isMuted() ? '🔇 Voice muted' : '🔊 Voice on';
-    setMuteLabel();
-    $('#vMute').addEventListener('click', () => {
-      PP.Voice.toggleMute(); setMuteLabel();
-      if (!PP.Voice.isMuted()) PP.Voice.speak('Voice on!', { interrupt: true });
+    // ----- mode picker -----
+    const modeOpts = [
+      { id: 'premium', icon: '✨', label: 'Hoot Premium', sub: 'warm, same on every device' },
+      { id: 'device',  icon: '📱', label: 'Device voice', sub: supported ? "use this device's voice" : 'not supported here' },
+      { id: 'mute',    icon: '🔇', label: 'Mute',         sub: 'no voice, just sound effects' },
+    ];
+    const modeList = $('#vModeList');
+    modeOpts.forEach(o => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.role = 'radio';
+      b.setAttribute('aria-checked', String(o.id === mode));
+      b.className = 'll-set__pill' + (o.id === mode ? ' is-active' : '');
+      if (o.id === 'device' && !supported) b.disabled = true;
+      b.innerHTML = `<span>${o.icon}</span><strong>${o.label}</strong><em>${o.sub}</em>`;
+      b.addEventListener('click', () => {
+        if (b.disabled) return;
+        PP.Voice.setVoiceMode(o.id);
+        modeList.querySelectorAll('.ll-set__pill').forEach(x => {
+          x.classList.remove('is-active');
+          x.setAttribute('aria-checked', 'false');
+        });
+        b.classList.add('is-active');
+        b.setAttribute('aria-checked', 'true');
+        updatePackInfo();
+      });
+      modeList.appendChild(b);
     });
+
+    function updatePackInfo() {
+      const el = $('#vPackInfo');
+      if (!el) return;
+      const m = (PP.Voice.getVoiceMode && PP.Voice.getVoiceMode()) || 'premium';
+      if (m === 'mute') {
+        el.innerHTML = 'Voice is off. Sound effects still play.';
+        return;
+      }
+      if (m === 'device') {
+        el.innerHTML = 'Using this device\u2019s voice. You can fine-tune it under <em>Advanced</em>.';
+        return;
+      }
+      if (packLoaded && packInfo) {
+        el.innerHTML = `Hoot Premium pack loaded \u2014 <strong>${packInfo.count}</strong> phrases ready. Lines without a recording fall back to the device voice automatically.`;
+      } else {
+        el.innerHTML = `<strong>No voice pack found.</strong> Run <code>node tools/bake-voice.mjs</code> on macOS to generate one, then refresh. The app uses the device voice meanwhile.`;
+      }
+    }
+    updatePackInfo();
+
+    // Test button speaks a greeting through the active routing chain.
     $('#vTest').addEventListener('click', () => {
       const p = PP.Progress.profile();
-      const name = p.name ? p.name + ', ' : '';
-      PP.Voice.speak(`Hi ${name}I'm Hoot! Let's learn together today.`, { interrupt: true });
+      PP.Voice.cancel && PP.Voice.cancel();
+      const line = PP.Phrases.greeting(p.name || '');
+      PP.Voice.speak(line, { interrupt: true });
     });
 
-    bindSlider('#vRate',  '#vRateOut',  PP.Voice.getRate(),                                  v => `${v.toFixed(2)}×`,         v => PP.Voice.setRate(v));
-    bindSlider('#vPitch', '#vPitchOut', PP.Voice.getPitch ? PP.Voice.getPitch() : 1.08,      v => v.toFixed(2),              v => PP.Voice.setPitch(v));
-    bindSlider('#vVol',   '#vVolOut',   PP.Voice.getVolume ? PP.Voice.getVolume() : 1,       v => Math.round(v * 100) + '%', v => PP.Voice.setVolume(v));
-
-    renderVoiceList(voices, PP.Voice.getSelected && PP.Voice.getSelected());
+    // ----- advanced (device voice tuning) -----
+    if (supported) {
+      const voices = (PP.Voice.getVoices && PP.Voice.getVoices()) || [];
+      const cnt = $('#vListCount');
+      if (cnt) cnt.textContent = `(${voices.length} available)`;
+      bindSlider('#vRate',  '#vRateOut',  PP.Voice.getRate(),                                  v => `${v.toFixed(2)}\u00d7`,    v => PP.Voice.setRate(v));
+      bindSlider('#vPitch', '#vPitchOut', PP.Voice.getPitch ? PP.Voice.getPitch() : 1.08,      v => v.toFixed(2),               v => PP.Voice.setPitch(v));
+      bindSlider('#vVol',   '#vVolOut',   PP.Voice.getVolume ? PP.Voice.getVolume() : 1,       v => Math.round(v * 100) + '%',  v => PP.Voice.setVolume(v));
+      renderVoiceList(voices, PP.Voice.getSelected && PP.Voice.getSelected());
+    }
   }
 
   function renderVoiceList(voices, current) {

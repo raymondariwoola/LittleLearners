@@ -284,6 +284,39 @@
   font-size: 14px;
   line-height: 1.4;
 }
+.ll-set__hint code {
+  background: rgba(0,0,0,.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+.ll-set__details {
+  margin-top: 12px;
+  border-top: 1px dashed rgba(0,0,0,.12);
+  padding-top: 10px;
+}
+.ll-set__details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--pp-ink-soft);
+  font-size: 14px;
+  padding: 4px 0;
+  list-style: none;
+}
+.ll-set__details > summary::-webkit-details-marker { display: none; }
+.ll-set__details > summary::before {
+  content: '\25B8';
+  display: inline-block;
+  width: 1em;
+  transition: transform .15s ease;
+}
+.ll-set__details[open] > summary::before { transform: rotate(90deg); }
+.ll-set__detailsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 10px;
+}
 .ll-set__foot {
   text-align: center;
   color: var(--pp-ink-soft);

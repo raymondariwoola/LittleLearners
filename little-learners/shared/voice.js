@@ -102,13 +102,71 @@
     return r;
   }
 
-  function speak(text, opts = {}) {
-    if (!supported || muted || !text) return Promise.resolve();
-    // `force: true` is an explicit "speak now" alias used by a few games for
-    // counting/feedback chimes. Treat it as a request to interrupt any
-    // currently-queued speech regardless of how `interrupt` is set.
+  // Voice routing mode. 'premium' tries the pre-baked pack first then falls
+  // through to neural / device speech. 'device' skips the pack entirely.
+  // 'mute' is equivalent to muted=true and is stored separately so we can
+  // remember the user's preferred non-mute tier across mute toggles.
+  function getVoiceMode() {
+    const m = (S().voiceMode || 'premium');
+    return (m === 'premium' || m === 'device' || m === 'mute') ? m : 'premium';
+  }
+  function setVoiceMode(mode) {
+    const m = (mode === 'premium' || mode === 'device' || mode === 'mute') ? mode : 'premium';
+    saveS({ voiceMode: m });
+    // Mute mode is implemented by flipping the existing mute flag so legacy
+    // checks (PP.Voice.isMuted, mute button labels) keep working.
+    if (m === 'mute' && !muted) toggleMute();
+    else if (m !== 'mute' && muted) toggleMute();
+    notify();
+  }
+
+  function speak(input, opts = {}) {
+    if (!input) return Promise.resolve();
+    // Inputs may be plain strings or String wrappers tagged by PP.Phrases
+    // with a `.phraseId`. Extract both so we can route through the pack.
+    const phraseId = (typeof input === 'object' && input && input.phraseId) || null;
+    const text = (typeof input === 'string') ? input : String(input || '');
+    if (muted) return Promise.resolve();
+
     const shouldInterrupt = opts.force === true ? true : (opts.interrupt !== false);
-    if (shouldInterrupt) synth.cancel();
+    if (shouldInterrupt) cancelAll();
+
+    const mode = opts.engine || getVoiceMode();
+    const allowPack = mode !== 'device' && opts.engine !== 'device';
+    const baseVol = opts.volume ?? voiceVol;
+    const baseRate = effectiveRate(opts);
+
+    // Tier 1: pre-baked pack.
+    if (allowPack && window.PP && PP.VoicePack && PP.VoicePack.isLoaded()) {
+      const meta = PP.VoicePack.match(phraseId ? { phraseId, toString: () => text } : text);
+      if (meta) {
+        return PP.VoicePack.play(meta, {
+          interrupt: shouldInterrupt,
+          rate: baseRate,
+          volume: baseVol,
+        }).then(ok => { if (!ok) return speakDeviceFallback(text, opts); });
+      }
+    }
+
+    // Tier 2: neural synth (no-op until configured + enabled).
+    if (allowPack && window.PP && PP.VoiceNeural && PP.VoiceNeural.isReady()) {
+      return PP.VoiceNeural.speak(text, { rate: baseRate, volume: baseVol })
+        .then(ok => ok ? undefined : speakDeviceFallback(text, opts));
+    }
+
+    return speakDeviceFallback(text, opts);
+  }
+
+  // Cancel both speech tiers. Used when an interrupt is requested.
+  function cancelAll() {
+    if (supported) synth.cancel();
+    if (window.PP && PP.VoicePack && PP.VoicePack.interrupt) PP.VoicePack.interrupt();
+  }
+
+  // Tier 3 — the original Web Speech path. Pulled into its own function so
+  // every higher tier can fall back to it cleanly on a miss / failure.
+  function speakDeviceFallback(text, opts = {}) {
+    if (!supported || !text) return Promise.resolve();
     const basePitch = opts.pitch ?? pitch;
     const baseRate = effectiveRate(opts);
     const jitter = (Math.random() - 0.5) * 0.05;
@@ -144,7 +202,7 @@
     });
   }
 
-  function cancel() { if (supported) synth.cancel(); }
+  function cancel() { cancelAll(); }
 
   // ===== Extended toddler helpers =====
   function spell(word, opts = {}) {
@@ -178,15 +236,32 @@
     return p;
   }
 
+  // Stable-id cheer pool. The ids map to clips in the voice pack so the
+  // celebratory line plays in Hoot's voice when the pack is loaded.
   const CHEERS = [
-    "Wow!", "Amazing!", "Yes!", "Brilliant!", "You did it!",
-    "Fantastic!", "Hooray!", "Wonderful!", "Yay!", "Awesome!",
-    "Oh, well done!", "Beautiful!",
+    ['cheer-01', 'Wow!'],
+    ['cheer-02', 'Amazing!'],
+    ['cheer-03', 'Yes!'],
+    ['cheer-04', 'Brilliant!'],
+    ['cheer-05', 'You did it!'],
+    ['cheer-06', 'Fantastic!'],
+    ['cheer-07', 'Hooray!'],
+    ['cheer-08', 'Wonderful!'],
+    ['cheer-09', 'Yay!'],
+    ['cheer-10', 'Awesome!'],
+    ['cheer-11', 'Oh, well done!'],
+    ['cheer-12', 'Beautiful!'],
   ];
   function cheer(name) {
-    const phrase = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+    const [id, phrase] = CHEERS[Math.floor(Math.random() * CHEERS.length)];
     const tag = name ? (Math.random() < 0.5 ? ` ${name}!` : '') : '';
-    return speak(phrase + tag, { pitch: 1.18, rate: 1.0 });
+    // If we're appending a name we lose the pack match (no clip exists for
+    // "Brilliant! Sky!"). In that case fall through to the device tier with
+    // the original text so the name still gets spoken.
+    if (tag) return speak(phrase + tag, { pitch: 1.18, rate: 1.0 });
+    const wrapped = new String(phrase); // eslint-disable-line no-new-wrappers
+    wrapped.phraseId = id;
+    return speak(wrapped, { pitch: 1.18, rate: 1.0 });
   }
 
   function ask(question, opts = {}) {
@@ -238,6 +313,7 @@
   const api = {
     speak, cancel, ask, spell, count, cheer,
     setVoiceByName, setRate, setPitch, setVolume, toggleMute, setMuted,
+    setVoiceMode, getVoiceMode,
     getVoices: () => voices.slice(),
     getSelected: () => selectedVoice,
     getQuality: () => voiceQuality,
@@ -257,35 +333,86 @@
 
 /* PP.Phrases — toddler-friendly phrase bank.
  * Soft, never punishing. Used by every category for praise / retry.
+ *
+ * Every public method returns a String *instance* (not a primitive) tagged
+ * with a `.phraseId` property. Plain `textContent` / template usage still
+ * works because String boxes coerce, but `PP.Voice.speak()` can detect the
+ * id and look up a pre-baked clip in PP.VoicePack. Keep these ids stable —
+ * they map 1:1 to filenames in audio/voice/hoot-en-v1/.
  */
 (function () {
+  // Each entry = [id, text]. Add new ones at the end so existing manifest
+  // entries stay valid.
   const correct = [
-    "That's right!", "Yes! You got it.", "Brilliant!", "Amazing!",
-    "Wow, well done!", "Spot on!", "Yes, that's the one.",
-    "Oh, perfect!", "Fantastic!", "You did it!",
+    ['praise-01', "That's right!"],
+    ['praise-02', "Yes! You got it."],
+    ['praise-03', "Brilliant!"],
+    ['praise-04', "Amazing!"],
+    ['praise-05', "Wow, well done!"],
+    ['praise-06', "Spot on!"],
+    ['praise-07', "Yes, that's the one."],
+    ['praise-08', "Oh, perfect!"],
+    ['praise-09', "Fantastic!"],
+    ['praise-10', "You did it!"],
   ];
   const tryAgain = [
-    "Oops, try again!", "Hmm, not quite — have another go.",
-    "Almost! Try one more time.", "Nearly! Try again.",
-    "So close! Have another look.",
+    ['retry-01', "Oops, try again!"],
+    ['retry-02', "Hmm, not quite \u2014 have another go."],
+    ['retry-03', "Almost! Try one more time."],
+    ['retry-04', "Nearly! Try again."],
+    ['retry-05', "So close! Have another look."],
   ];
+  // Reveal lines carry a {label} slot, so we can't pre-bake the full sentence.
+  // We still hand back stable ids so the pack can supply intro/outro halves
+  // if a future bake gets fancy; today VoicePack treats them as fallbacks.
   const reveal = (label) => [
-    `This one is ${label}! Let's try another.`,
-    `It's ${label}. Good try!`,
-    `That's ${label}. Let's keep playing!`,
+    ['reveal-01', `This one is ${label}! Let's try another.`],
+    ['reveal-02', `It's ${label}. Good try!`],
+    ['reveal-03', `That's ${label}. Let's keep playing!`],
   ];
   const idle = [
-    "Take your time...", "Which one do you think?",
-    "Have a look...", "You can do it!",
+    ['idle-01', "Take your time..."],
+    ['idle-02', "Which one do you think?"],
+    ['idle-03', "Have a look..."],
+    ['idle-04', "You can do it!"],
   ];
-  const greeting = (name) => name
-    ? [`Hi ${name}! What do you want to learn today?`, `Hello ${name}! Let's play!`, `Hi ${name}! I missed you!`]
-    : ["Hi there! What do you want to learn today?", "Hello! Let's play!"];
-  const farewell = ["Bye for now!", "See you soon!", "Come back and play again!"];
-  const newRound = ["Here we go!", "Let's play!", "Get ready!"];
-  const lastQuestion = ["Last one!", "One more!", "Final question!"];
+  // Greetings interpolate the child's name; pack still ships a name-less
+  // variant under greeting-anon-*, and the neural tier handles named ones.
+  const greeting = (name) => name ? [
+    ['greeting-name-01', `Hi ${name}! What do you want to learn today?`],
+    ['greeting-name-02', `Hello ${name}! Let's play!`],
+    ['greeting-name-03', `Hi ${name}! I missed you!`],
+  ] : [
+    ['greeting-anon-01', "Hi there! What do you want to learn today?"],
+    ['greeting-anon-02', "Hello! Let's play!"],
+  ];
+  const farewell = [
+    ['farewell-01', "Bye for now!"],
+    ['farewell-02', "See you soon!"],
+    ['farewell-03', "Come back and play again!"],
+  ];
+  const newRound = [
+    ['round-01', "Here we go!"],
+    ['round-02', "Let's play!"],
+    ['round-03', "Get ready!"],
+  ];
+  const lastQuestion = [
+    ['last-01', "Last one!"],
+    ['last-02', "One more!"],
+    ['last-03', "Final question!"],
+  ];
 
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  // Returns a String wrapper carrying the phrase id. Implicit coercion keeps
+  // `${phrase}` and `textContent = phrase` working unchanged.
+  function tag(id, text) {
+    const s = new String(text); // eslint-disable-line no-new-wrappers
+    s.phraseId = id;
+    return s;
+  }
+  function pick(arr) {
+    const [id, text] = arr[Math.floor(Math.random() * arr.length)];
+    return tag(id, text);
+  }
 
   window.PP = window.PP || {};
   window.PP.Phrases = {
@@ -297,5 +424,39 @@
     farewell: () => pick(farewell),
     newRound: () => pick(newRound),
     lastQuestion: () => pick(lastQuestion),
+    // Catalog used by tools/bake-voice.mjs to enumerate the phrase pack.
+    _catalog: {
+      correct, tryAgain, idle, farewell, newRound, lastQuestion,
+      greetingAnon: greeting(null),
+    },
   };
 })();
+
+/* Auto-loader for the voice pack + neural shim. We inject these as sibling
+ * script tags next to voice.js so the 14 HTML entry points don't each have
+ * to be edited when we add a new tier. Each tier is independently optional
+ * and PP.Voice degrades gracefully if a tier file fails to load.
+ */
+(function () {
+  if (window.PP && PP.VoicePack && PP.VoiceNeural) return; // already loaded
+
+  // Find the <script> tag that loaded voice.js so we can resolve sibling
+  // module paths regardless of the current page depth (/ vs /pages/).
+  const here = document.currentScript
+    || Array.from(document.scripts).find(s => /\/shared\/voice\.js(\?|$)/.test(s.src));
+  const base = here ? here.src.replace(/voice\.js(\?.*)?$/, '') : '';
+
+  function injectOnce(name) {
+    if (!base) return;
+    const url = base + name;
+    if (Array.from(document.scripts).some(s => s.src === url)) return;
+    const s = document.createElement('script');
+    s.src = url;
+    s.defer = false;
+    s.async = false;
+    document.head.appendChild(s);
+  }
+  injectOnce('voice-pack.js');
+  injectOnce('voice-neural.js');
+})();
+

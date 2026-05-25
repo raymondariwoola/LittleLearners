@@ -1,0 +1,261 @@
+{
+  "id": "hoot-en-v1",
+  "label": "Hoot Premium",
+  "voice": "Ava (Premium)",
+  "lang": "en-US",
+  "version": 1,
+  "clips": {
+    "praise-01": {
+      "file": "phrases/praise-01.webm",
+      "text": "That's right!",
+      "durationMs": 660,
+      "bytes": 2707
+    },
+    "praise-02": {
+      "file": "phrases/praise-02.webm",
+      "text": "Yes! You got it.",
+      "durationMs": 1301,
+      "bytes": 4676
+    },
+    "praise-03": {
+      "file": "phrases/praise-03.webm",
+      "text": "Brilliant!",
+      "durationMs": 546,
+      "bytes": 2358
+    },
+    "praise-04": {
+      "file": "phrases/praise-04.webm",
+      "text": "Amazing!",
+      "durationMs": 597,
+      "bytes": 2464
+    },
+    "praise-05": {
+      "file": "phrases/praise-05.webm",
+      "text": "Wow, well done!",
+      "durationMs": 1299,
+      "bytes": 4650
+    },
+    "praise-06": {
+      "file": "phrases/praise-06.webm",
+      "text": "Spot on!",
+      "durationMs": 730,
+      "bytes": 2947
+    },
+    "praise-07": {
+      "file": "phrases/praise-07.webm",
+      "text": "Yes, that's the one.",
+      "durationMs": 1428,
+      "bytes": 5148
+    },
+    "praise-08": {
+      "file": "phrases/praise-08.webm",
+      "text": "Oh, perfect!",
+      "durationMs": 1115,
+      "bytes": 3952
+    },
+    "praise-09": {
+      "file": "phrases/praise-09.webm",
+      "text": "Fantastic!",
+      "durationMs": 857,
+      "bytes": 3401
+    },
+    "praise-10": {
+      "file": "phrases/praise-10.webm",
+      "text": "You did it!",
+      "durationMs": 534,
+      "bytes": 2293
+    },
+    "retry-01": {
+      "file": "phrases/retry-01.webm",
+      "text": "Oops, try again!",
+      "durationMs": 1481,
+      "bytes": 5126
+    },
+    "retry-02": {
+      "file": "phrases/retry-02.webm",
+      "text": "Hmm, not quite — have another go.",
+      "durationMs": 2231,
+      "bytes": 7661
+    },
+    "retry-03": {
+      "file": "phrases/retry-03.webm",
+      "text": "Almost! Try one more time.",
+      "durationMs": 2077,
+      "bytes": 7468
+    },
+    "retry-04": {
+      "file": "phrases/retry-04.webm",
+      "text": "Nearly! Try again.",
+      "durationMs": 1419,
+      "bytes": 5021
+    },
+    "retry-05": {
+      "file": "phrases/retry-05.webm",
+      "text": "So close! Have another look.",
+      "durationMs": 1972,
+      "bytes": 6969
+    },
+    "idle-01": {
+      "file": "phrases/idle-01.webm",
+      "text": "Take your time...",
+      "durationMs": 925,
+      "bytes": 3592
+    },
+    "idle-02": {
+      "file": "phrases/idle-02.webm",
+      "text": "Which one do you think?",
+      "durationMs": 1287,
+      "bytes": 4791
+    },
+    "idle-03": {
+      "file": "phrases/idle-03.webm",
+      "text": "Have a look...",
+      "durationMs": 677,
+      "bytes": 2750
+    },
+    "idle-04": {
+      "file": "phrases/idle-04.webm",
+      "text": "You can do it!",
+      "durationMs": 790,
+      "bytes": 3166
+    },
+    "greeting-anon-01": {
+      "file": "phrases/greeting-anon-01.webm",
+      "text": "Hi there! What do you want to learn today?",
+      "durationMs": 2477,
+      "bytes": 8568
+    },
+    "greeting-anon-02": {
+      "file": "phrases/greeting-anon-02.webm",
+      "text": "Hello! Let's play!",
+      "durationMs": 1525,
+      "bytes": 5371
+    },
+    "farewell-01": {
+      "file": "phrases/farewell-01.webm",
+      "text": "Bye for now!",
+      "durationMs": 766,
+      "bytes": 3098
+    },
+    "farewell-02": {
+      "file": "phrases/farewell-02.webm",
+      "text": "See you soon!",
+      "durationMs": 893,
+      "bytes": 3486
+    },
+    "farewell-03": {
+      "file": "phrases/farewell-03.webm",
+      "text": "Come back and play again!",
+      "durationMs": 1319,
+      "bytes": 4852
+    },
+    "round-01": {
+      "file": "phrases/round-01.webm",
+      "text": "Here we go!",
+      "durationMs": 758,
+      "bytes": 2996
+    },
+    "round-02": {
+      "file": "phrases/round-02.webm",
+      "text": "Let's play!",
+      "durationMs": 790,
+      "bytes": 3156
+    },
+    "round-03": {
+      "file": "phrases/round-03.webm",
+      "text": "Get ready!",
+      "durationMs": 603,
+      "bytes": 2572
+    },
+    "last-01": {
+      "file": "phrases/last-01.webm",
+      "text": "Last one!",
+      "durationMs": 743,
+      "bytes": 3047
+    },
+    "last-02": {
+      "file": "phrases/last-02.webm",
+      "text": "One more!",
+      "durationMs": 625,
+      "bytes": 2652
+    },
+    "last-03": {
+      "file": "phrases/last-03.webm",
+      "text": "Final question!",
+      "durationMs": 1077,
+      "bytes": 4141
+    },
+    "cheer-01": {
+      "file": "phrases/cheer-01.webm",
+      "text": "Wow!",
+      "durationMs": 439,
+      "bytes": 1956
+    },
+    "cheer-02": {
+      "file": "phrases/cheer-02.webm",
+      "text": "Amazing!",
+      "durationMs": 597,
+      "bytes": 2464
+    },
+    "cheer-03": {
+      "file": "phrases/cheer-03.webm",
+      "text": "Yes!",
+      "durationMs": 488,
+      "bytes": 2180
+    },
+    "cheer-04": {
+      "file": "phrases/cheer-04.webm",
+      "text": "Brilliant!",
+      "durationMs": 546,
+      "bytes": 2358
+    },
+    "cheer-05": {
+      "file": "phrases/cheer-05.webm",
+      "text": "You did it!",
+      "durationMs": 534,
+      "bytes": 2293
+    },
+    "cheer-06": {
+      "file": "phrases/cheer-06.webm",
+      "text": "Fantastic!",
+      "durationMs": 857,
+      "bytes": 3401
+    },
+    "cheer-07": {
+      "file": "phrases/cheer-07.webm",
+      "text": "Hooray!",
+      "durationMs": 584,
+      "bytes": 2381
+    },
+    "cheer-08": {
+      "file": "phrases/cheer-08.webm",
+      "text": "Wonderful!",
+      "durationMs": 660,
+      "bytes": 2764
+    },
+    "cheer-09": {
+      "file": "phrases/cheer-09.webm",
+      "text": "Yay!",
+      "durationMs": 442,
+      "bytes": 2010
+    },
+    "cheer-10": {
+      "file": "phrases/cheer-10.webm",
+      "text": "Awesome!",
+      "durationMs": 475,
+      "bytes": 2121
+    },
+    "cheer-11": {
+      "file": "phrases/cheer-11.webm",
+      "text": "Oh, well done!",
+      "durationMs": 1208,
+      "bytes": 4370
+    },
+    "cheer-12": {
+      "file": "phrases/cheer-12.webm",
+      "text": "Beautiful!",
+      "durationMs": 581,
+      "bytes": 2491
+    }
+  }
+}

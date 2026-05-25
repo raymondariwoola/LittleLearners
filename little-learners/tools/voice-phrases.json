@@ -1,0 +1,54 @@
+{
+  "_comment": "Master phrase catalog for the bake script. Keep ids stable — they map 1:1 to PP.Phrases / PP.Voice cheer ids in shared/voice.js. Add new lines at the end so existing clips stay valid. Edit text freely; the bake script will refresh the audio.",
+  "phrases": {
+    "praise-01": "That's right!",
+    "praise-02": "Yes! You got it.",
+    "praise-03": "Brilliant!",
+    "praise-04": "Amazing!",
+    "praise-05": "Wow, well done!",
+    "praise-06": "Spot on!",
+    "praise-07": "Yes, that's the one.",
+    "praise-08": "Oh, perfect!",
+    "praise-09": "Fantastic!",
+    "praise-10": "You did it!",
+
+    "retry-01": "Oops, try again!",
+    "retry-02": "Hmm, not quite \u2014 have another go.",
+    "retry-03": "Almost! Try one more time.",
+    "retry-04": "Nearly! Try again.",
+    "retry-05": "So close! Have another look.",
+
+    "idle-01": "Take your time...",
+    "idle-02": "Which one do you think?",
+    "idle-03": "Have a look...",
+    "idle-04": "You can do it!",
+
+    "greeting-anon-01": "Hi there! What do you want to learn today?",
+    "greeting-anon-02": "Hello! Let's play!",
+
+    "farewell-01": "Bye for now!",
+    "farewell-02": "See you soon!",
+    "farewell-03": "Come back and play again!",
+
+    "round-01": "Here we go!",
+    "round-02": "Let's play!",
+    "round-03": "Get ready!",
+
+    "last-01": "Last one!",
+    "last-02": "One more!",
+    "last-03": "Final question!",
+
+    "cheer-01": "Wow!",
+    "cheer-02": "Amazing!",
+    "cheer-03": "Yes!",
+    "cheer-04": "Brilliant!",
+    "cheer-05": "You did it!",
+    "cheer-06": "Fantastic!",
+    "cheer-07": "Hooray!",
+    "cheer-08": "Wonderful!",
+    "cheer-09": "Yay!",
+    "cheer-10": "Awesome!",
+    "cheer-11": "Oh, well done!",
+    "cheer-12": "Beautiful!"
+  }
+}

@@ -12,8 +12,15 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.3.0';
+const CACHE_VERSION = 'v1.4.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
+
+// Voice assets (pre-baked phrase clips and the manifest) live in a separate
+// cache so they survive app version bumps. The clips are immutable per
+// phrase id, so we cache-first them forever and let the manifest version
+// invalidate them.
+const VOICE_CACHE = 'pp-voice-assets-v1';
+const VOICE_PATH_RE = /\/audio\/voice\//;
 
 const PRECACHE = [
   './',
@@ -29,6 +36,8 @@ const PRECACHE = [
   './shared/theme.js',
   './shared/mascot.js',
   './shared/voice.js',
+  './shared/voice-pack.js',
+  './shared/voice-neural.js',
   './shared/audio.js',
   './shared/confetti.js',
   './shared/ui.js',
@@ -78,6 +87,8 @@ const PRECACHE = [
   './pages/memory.html',
   './pages/parent.html',
   './pages/settings.html',
+
+  './audio/voice/hoot-en-v1/manifest.json',
 ];
 
 self.addEventListener('install', (event) => {
@@ -94,7 +105,12 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      // Keep the active app cache AND the dedicated voice cache around when
+      // cleaning up stale versions; voice clips are large and don't change
+      // across app updates.
+      Promise.all(keys
+        .filter((k) => k !== CACHE_NAME && k !== VOICE_CACHE)
+        .map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -108,6 +124,13 @@ self.addEventListener('fetch', (event) => {
   const isFonts = url.host === 'fonts.googleapis.com' || url.host === 'fonts.gstatic.com';
 
   if (isSameOrigin) {
+    // Voice clips: cache-first, never evicted by version bumps. The manifest
+    // is the source of truth for which clip ids are valid, so a clip URL is
+    // effectively immutable once baked.
+    if (VOICE_PATH_RE.test(url.pathname) && !/manifest\.json$/.test(url.pathname)) {
+      event.respondWith(cacheFirstVoice(req));
+      return;
+    }
     // Navigations (HTML page loads) must be network-first so updates show up
     // immediately on a normal refresh. Everything else uses
     // stale-while-revalidate so the UI stays fast but updates within one cycle.
@@ -169,6 +192,22 @@ async function networkFirst(req) {
     return res;
   } catch (err) {
     const cached = await cache.match(req);
+    if (cached) return cached;
+    throw err;
+  }
+}
+
+// Cache-first for the voice clip pack. The clip URL is keyed by phrase id
+// in the manifest, so once it's downloaded we never need to refetch it.
+async function cacheFirstVoice(req) {
+  const cache = await caches.open(VOICE_CACHE);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+  try {
+    const res = await fetch(req);
+    if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+    return res;
+  } catch (err) {
     if (cached) return cached;
     throw err;
   }
