@@ -12,7 +12,7 @@
  *  - Google Fonts (cross-origin): network-first, fall back to cache if available.
  *  - Bump CACHE_VERSION whenever app assets change so old caches are cleaned up.
  */
-const CACHE_VERSION = 'v1.4.0';
+const CACHE_VERSION = 'v1.5.0';
 const CACHE_NAME = `pp-little-learners-${CACHE_VERSION}`;
 
 // Voice assets (pre-baked phrase clips and the manifest) live in a separate
@@ -166,7 +166,20 @@ self.addEventListener('fetch', (event) => {
 
 // Allow the page to ask the SW to take over immediately after an update.
 self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+  // Settings -> "Remove voice" sends this to wipe the cached neural model.
+  // We reply via the source port so the UI can confirm + repaint.
+  if (event.data && event.data.type === 'PURGE_NEURAL_CACHE') {
+    event.waitUntil((async () => {
+      const ok = await caches.delete(NEURAL_CACHE);
+      if (event.source && event.source.postMessage) {
+        try { event.source.postMessage({ type: 'PURGE_NEURAL_CACHE_DONE', ok }); } catch (_) {}
+      }
+    })());
+  }
 });
 
 async function networkFirstNavigation(req) {

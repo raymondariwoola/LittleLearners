@@ -197,6 +197,7 @@
 
     return {
       kind: 'piper',
+      mod,
       synth: async (text, opts) => {
         const wavBlob = await predict({
           text,
@@ -261,6 +262,52 @@
     setProgress({ phase: 'idle', label: '', loaded: 0, total: 0, percent: 0 });
     saveS({ neuralEnabled: false });
     notify();
+  }
+
+  // Wipe the persisted model from disk. This includes:
+  //   - the service worker's NEURAL_CACHE (esm.sh + huggingface.co URLs)
+  //   - Piper's own IndexedDB-backed model store (when loaded)
+  // Note: transformers.js caches model files in the browser's Cache Storage,
+  // which the SW PURGE_NEURAL_CACHE message also covers because all model
+  // requests go through huggingface.co. We can't reach transformers.js's
+  // private cache name directly from here, but the SW handles those URLs.
+  async function removeDownload() {
+    const eng = state.engine;
+    // 1. Tear down in-memory state first so nothing tries to use a
+    //    half-removed model.
+    disable();
+
+    // 2. Piper exposes a remove/flush API for its IndexedDB store.
+    if (eng && eng.kind === 'piper' && eng.mod) {
+      try {
+        if (typeof eng.mod.flush === 'function') await eng.mod.flush();
+        // remove(voiceId) deletes a single voice; flush() handles the rest.
+      } catch (err) {
+        console.warn('[PP.VoiceNeural] Piper flush failed:', err);
+      }
+    }
+
+    // 3. Ask the SW to drop its neural cache bucket. Wait for confirmation.
+    const reg = (navigator.serviceWorker && navigator.serviceWorker.controller) ? navigator.serviceWorker : null;
+    if (reg && reg.controller) {
+      await new Promise((resolve) => {
+        const ch = new MessageChannel();
+        let done = false;
+        const finish = () => { if (done) return; done = true; resolve(); };
+        ch.port1.onmessage = (e) => {
+          if (e.data && e.data.type === 'PURGE_NEURAL_CACHE_DONE') finish();
+        };
+        // Fallback in case the SW is mid-update and never replies.
+        setTimeout(finish, 2500);
+        try {
+          reg.controller.postMessage({ type: 'PURGE_NEURAL_CACHE' }, [ch.port2]);
+        } catch (_) { finish(); }
+      });
+    }
+
+    saveS({ neuralAutoLoad: false });
+    notify();
+    return true;
   }
 
   // ---- speak -------------------------------------------------------------
@@ -354,7 +401,7 @@
   // ---- public API --------------------------------------------------------
   window.PP = window.PP || {};
   window.PP.VoiceNeural = {
-    capability, configure, enable, disable, speak, interrupt,
+    capability, configure, enable, disable, removeDownload, speak, interrupt,
     isReady: () => state.ready,
     isLoading: () => !!state.loading,
     snapshot, onChange,

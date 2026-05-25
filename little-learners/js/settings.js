@@ -217,13 +217,27 @@
         el.innerHTML = 'Using this device\u2019s voice. You can fine-tune it under <em>Advanced</em>.';
         return;
       }
+      // Premium mode. Show pack status + a small pip indicating whether the
+      // Hoot Plus neural tier is also armed for words the pack doesn't cover.
+      const neural = (window.PP && PP.VoiceNeural) ? PP.VoiceNeural.snapshot() : null;
+      const neuralPip = neural && neural.ready
+        ? ` <span class="ll-set__pip ll-set__pip--on" title="Hoot Plus is active">✨ Hoot Plus on</span>`
+        : '';
+      const order = neural && neural.ready
+        ? 'Order: recorded clip → Hoot Plus neural voice → device voice.'
+        : 'Order: recorded clip → device voice for anything new. Turn on <em>Hoot Plus</em> below for an on-device voice instead.';
       if (packLoaded && packInfo) {
-        el.innerHTML = `Hoot Premium pack loaded \u2014 <strong>${packInfo.count}</strong> phrases ready. Lines without a recording fall back to the device voice automatically.`;
+        el.innerHTML = `Hoot Premium pack loaded — <strong>${packInfo.count}</strong> phrases ready.${neuralPip}<br><span class="ll-set__hint">${order}</span>`;
       } else {
-        el.innerHTML = `<strong>No voice pack found.</strong> Run <code>node tools/bake-voice.mjs</code> on macOS to generate one, then refresh. The app uses the device voice meanwhile.`;
+        el.innerHTML = `<strong>No voice pack found.</strong> Run <code>node tools/bake-voice.mjs</code> on macOS to generate one, then refresh. The app uses the device voice meanwhile.${neuralPip}`;
       }
     }
     updatePackInfo();
+
+    // Repaint the pip when Hoot Plus toggles on/off elsewhere on the page.
+    if (window.PP && PP.VoiceNeural && PP.VoiceNeural.onChange) {
+      PP.VoiceNeural.onChange(() => updatePackInfo());
+    }
 
     // Test button speaks a greeting through the active routing chain.
     $('#vTest').addEventListener('click', () => {
@@ -278,7 +292,13 @@
         <button id="nEnable"  type="button" class="pp-btn pp-btn--primary"></button>
         <button id="nDisable" type="button" class="pp-btn pp-btn--secondary" hidden>Turn off</button>
         <button id="nTest"    type="button" class="pp-btn pp-btn--mint" hidden>\u25B6 Hear it</button>
+        <button id="nRemove"  type="button" class="pp-btn pp-btn--ghost" hidden>🗑 Remove download</button>
       </div>
+
+      <label class="ll-set__field ll-set__field--inline" style="margin-top:8px;">
+        <input id="nAuto" type="checkbox" />
+        <span>Load Hoot Plus automatically when this app opens</span>
+      </label>
 
       <div id="nProgress" class="ll-neural__progress" hidden>
         <div class="ll-neural__bar"><div id="nBar" class="ll-neural__fill"></div></div>
@@ -328,10 +348,17 @@
     const enableBtn  = $('#nEnable');
     const disableBtn = $('#nDisable');
     const testBtn    = $('#nTest');
+    const removeBtn  = $('#nRemove');
+    const autoChk    = $('#nAuto');
     const status     = $('#nStatus');
     const prog       = $('#nProgress');
     const bar        = $('#nBar');
     const label      = $('#nLabel');
+
+    autoChk.checked = (PP.Progress.settings().neuralAutoLoad === true);
+    autoChk.addEventListener('change', () => {
+      PP.Progress.setSettings({ neuralAutoLoad: autoChk.checked });
+    });
 
     function paintFromSnapshot() {
       const sn = PP.VoiceNeural.snapshot();
@@ -345,6 +372,10 @@
       enableBtn.hidden = ready;
       disableBtn.hidden = !ready;
       testBtn.hidden = !ready;
+      // "Remove" is meaningful whenever the user has previously turned it on,
+      // even if it's not currently loaded — the cached model still lives on
+      // disk until they purge it.
+      removeBtn.hidden = !(ready || PP.Progress.settings().neuralEnabled === true);
 
       if (loading) {
         prog.hidden = false;
@@ -381,6 +412,19 @@
     disableBtn.addEventListener('click', () => {
       PP.VoiceNeural.disable();
       paintFromSnapshot();
+    });
+    removeBtn.addEventListener('click', async () => {
+      if (!confirm('Remove the downloaded Hoot Plus voice from this device? You can re-download it any time.')) return;
+      removeBtn.disabled = true;
+      label.textContent = 'Removing…';
+      prog.hidden = false;
+      bar.style.width = '0%';
+      try {
+        if (PP.VoiceNeural.removeDownload) await PP.VoiceNeural.removeDownload();
+      } finally {
+        removeBtn.disabled = false;
+        paintFromSnapshot();
+      }
     });
     testBtn.addEventListener('click', async () => {
       const name = (PP.Progress.profile().name || 'friend');

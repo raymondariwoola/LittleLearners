@@ -336,6 +336,34 @@
   background: linear-gradient(90deg, var(--pp-mint, #6cd1a6), var(--pp-sun, #ffd54a));
   transition: width .25s ease;
 }
+
+/* Small inline status chip used in the Voice card to indicate when the
+ * Hoot Plus (neural) tier is loaded and armed alongside the recorded pack. */
+.ll-set__pip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(0,0,0,.06);
+  color: var(--pp-ink-soft);
+  vertical-align: middle;
+}
+.ll-set__pip--on {
+  background: var(--pp-mint, #6cd1a6);
+  color: #0b3b2c;
+}
+
+/* Inline checkbox row used by the Hoot Plus "auto-load on app start" option. */
+.ll-set__field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.ll-set__field--inline input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
 .ll-set__foot {
   text-align: center;
   color: var(--pp-ink-soft);

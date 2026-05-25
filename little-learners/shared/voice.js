@@ -157,10 +157,12 @@
     return speakDeviceFallback(text, opts);
   }
 
-  // Cancel both speech tiers. Used when an interrupt is requested.
+  // Cancel every active speech tier. Used when an interrupt is requested.
+  // Order doesn't matter — each tier no-ops if it has nothing playing.
   function cancelAll() {
     if (supported) synth.cancel();
-    if (window.PP && PP.VoicePack && PP.VoicePack.interrupt) PP.VoicePack.interrupt();
+    if (window.PP && PP.VoicePack   && PP.VoicePack.interrupt)   PP.VoicePack.interrupt();
+    if (window.PP && PP.VoiceNeural && PP.VoiceNeural.interrupt) PP.VoiceNeural.interrupt();
   }
 
   // Tier 3 — the original Web Speech path. Pulled into its own function so
