@@ -76,6 +76,37 @@
     renderConfettiSection();
     renderDataSection();
     renderDangerSection();
+
+    // The voice tier modules (voice-pack.js + voice-neural.js) are injected
+    // dynamically by shared/voice.js, so on first paint either may not exist
+    // yet. Re-render the affected cards once they show up, and once
+    // VoicePack has finished its manifest fetch.
+    waitForVoiceModules().then(() => {
+      try { renderVoiceSection(); } catch (_) {}
+      try { renderNeuralSection(); } catch (_) {}
+      if (window.PP && PP.VoicePack && PP.VoicePack.onChange) {
+        PP.VoicePack.onChange(() => {
+          try { renderVoiceSection(); } catch (_) {}
+        });
+      }
+    });
+  }
+
+  // Poll for the dynamically-injected voice modules. Resolves as soon as
+  // both globals appear, or after a generous timeout so we never hang the
+  // UI if a script 404s. Cheap because the modules normally land within a
+  // few hundred ms of DOMContentLoaded.
+  function waitForVoiceModules(timeoutMs = 4000) {
+    return new Promise(resolve => {
+      const start = Date.now();
+      (function tick() {
+        const hasPack   = !!(window.PP && PP.VoicePack);
+        const hasNeural = !!(window.PP && PP.VoiceNeural);
+        if (hasPack && hasNeural) return resolve(true);
+        if (Date.now() - start >= timeoutMs) return resolve(false);
+        setTimeout(tick, 80);
+      })();
+    });
   }
 
   function sectionShell(el, title, subtitle) {

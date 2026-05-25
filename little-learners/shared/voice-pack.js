@@ -66,6 +66,14 @@
   // Currently-playing audio element, so interrupt() can stop it.
   let current = null;
   const lipsync = new Set(); // listeners: (speaking:boolean) => void
+  // Listeners fired whenever the pack finishes loading (or fails). Settings
+  // uses this to repaint the Voice card once the manifest resolves, because
+  // the auto-loader injects this script after first paint.
+  const changeListeners = new Set();
+  function onChange(fn) { changeListeners.add(fn); return () => changeListeners.delete(fn); }
+  function emitChange() {
+    changeListeners.forEach(fn => { try { fn(); } catch (_) {} });
+  }
 
   function onLipsync(fn) { lipsync.add(fn); return () => lipsync.delete(fn); }
   function emitLipsync(speaking) { lipsync.forEach(fn => { try { fn(speaking); } catch (_) {} }); }
@@ -94,12 +102,14 @@
         });
         state.textIndex = idx;
         state.ready = true;
+        emitChange();
       })
       .catch(() => {
         // No pack on disk yet — that's fine, just stay silent.
         state.manifest = null;
         state.textIndex = new Map();
         state.ready = false;
+        emitChange();
       });
     return state.loading;
   }
@@ -184,7 +194,7 @@
   window.PP.VoicePack = {
     load, match, play, interrupt,
     isReady, isLoaded, getPackInfo,
-    onLipsync, report, setPack,
+    onLipsync, onChange, report, setPack,
     normalize, // exposed for tests / bake script
   };
 
